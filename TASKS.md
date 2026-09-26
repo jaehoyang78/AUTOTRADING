@@ -43,6 +43,7 @@
 - [x] Price feature calculator tests
 - [x] Market input assembly tests
 - [x] Provider adapter normalization tests
+- [x] FRED HTTP parser/error tests
 
 ## P3 — 데이터 연결
 ### 기반
@@ -57,6 +58,7 @@
 - [x] normalized feature → MarketInputs assembly
 - [x] KIS gateway/adapter skeleton
 - [x] FRED gateway/adapter skeleton
+- [x] injectable JDK HTTP transport
 
 ### 한국
 - [ ] KIS live HTTP/OAuth gateway
@@ -82,13 +84,14 @@
 - [ ] EPS Revision
 
 ### Macro
-- [ ] FRED live HTTP gateway
-- [ ] 정책금리 series config
-- [ ] 국채금리 series config
-- [ ] 인플레이션 series config
-- [ ] 달러/환율 series config
-- [ ] 유동성 proxy series config
-- [ ] credit spread series config
+- [x] FRED live HTTP gateway
+- [x] 정책금리 series config: DFF
+- [x] 국채금리 series config: DGS2 / DGS10
+- [x] 인플레이션 series config: CPIAUCSL
+- [x] 달러/환율 series config: DEXKOUS
+- [x] 유동성 proxy series config: WALCL
+- [x] credit spread series config: BAMLH0A0HYM2
+- [ ] macro feature 계산 및 Market Regime 반영
 
 ## P4 — Backtest
 - [ ] Historical snapshot schema
@@ -136,10 +139,10 @@
 - [ ] timeout no-retry rule
 
 ## 다음 최우선 작업
-1. P3 FRED live HTTP gateway + series configuration
-2. P3 KIS live HTTP/OAuth gateway (market data only)
-3. 미국 종목 venue 식별 모델 확정
-4. 실제 데이터 smoke test → Market Regime 생성
+1. P3 KIS live HTTP/OAuth gateway (market data only)
+2. 미국 종목 venue 식별 모델 확정
+3. macro feature 계산 및 Market Regime 반영
+4. 실제 FRED/KIS 데이터 smoke test
 
 ## 재개용 한 줄 지시
 > `jaehoyang78/AUTOTRADING`의 README.md, PROJECT_STATUS.md, DECISIONS.md, ARCHITECTURE.md, ROADMAP.md, TASKS.md를 먼저 읽고 TASKS.md의 가장 높은 우선순위 미완료 항목부터 이어서 진행해. 중요한 결정 변경 시 DECISIONS.md와 PROJECT_STATUS.md도 함께 갱신해.
