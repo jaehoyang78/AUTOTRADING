@@ -8,6 +8,12 @@ import java.time.Duration
 
 interface HttpTransport {
     fun get(url: String, headers: Map<String, String> = emptyMap()): HttpResult
+
+    fun post(
+        url: String,
+        headers: Map<String, String> = emptyMap(),
+        body: String
+    ): HttpResult = throw UnsupportedOperationException("POST not supported by this transport")
 }
 
 data class HttpResult(val statusCode: Int, val body: String)
@@ -20,6 +26,15 @@ class JdkHttpTransport(
 
     override fun get(url: String, headers: Map<String, String>): HttpResult {
         val builder = HttpRequest.newBuilder(URI.create(url)).GET().timeout(requestTimeout)
+        headers.forEach { (key, value) -> builder.header(key, value) }
+        val response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString())
+        return HttpResult(response.statusCode(), response.body())
+    }
+
+    override fun post(url: String, headers: Map<String, String>, body: String): HttpResult {
+        val builder = HttpRequest.newBuilder(URI.create(url))
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .timeout(requestTimeout)
         headers.forEach { (key, value) -> builder.header(key, value) }
         val response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString())
         return HttpResult(response.statusCode(), response.body())
