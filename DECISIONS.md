@@ -88,3 +88,29 @@ PANIC의 현금 목표를 Risk-Off보다 약간 낮게 둔 이유는 고품질 �
 - -20% 이하: +15%
 
 최종 현금 목표는 10~60% 범위로 제한한다. 현재 주식비중이 `100 - 현금목표` 이상이면 신규 주식 익스포저 확대를 중지한다.
+
+## D-020 — 외부 데이터 공급자와 코어 전략을 인터페이스로 분리한다
+결정: KIS/FRED/Cboe 등 외부 서비스의 응답 스키마를 코어 계산 로직이 직접 사용하지 않는다.
+
+구조:
+`외부 API → provider adapter → AUTOTRADING 공통 모델 → feature/market-regime/scoring`
+
+이유:
+- API 필드 변경이 전략 로직까지 전파되는 것을 막는다.
+- KIS 외 다른 공급자를 추가/대체할 수 있다.
+- 테스트에서는 실제 네트워크 없이 fake provider를 사용할 수 있다.
+
+## D-021 — 데이터에는 값뿐 아니라 출처·시점·신선도를 저장한다
+`ProviderMeta`에 provider, observedAt, freshness를 기록한다. 오래된 데이터와 나쁜 데이터를 구분하고, 자동화 단계에서 stale critical data를 차단하기 위함이다.
+
+## D-022 — EPS Revision을 신뢰할 수 없는 proxy로 채우지 않는다
+컨센서스/추정치 변경 데이터가 확보되지 않았으면 Revision group을 missing으로 유지한다. 임의의 주가·실적 proxy를 EPS Revision이라고 부르지 않는다. Coverage가 이를 그대로 반영한다.
+
+## D-023 — 초기 데이터 공급자 우선순위
+- KIS: KR/US 시세·일봉
+- FRED: 미국 거시 시계열
+- Cboe 또는 검증 가능한 feed: VIX
+- VKOSPI: 신뢰 가능한 자동 접근 공급자 별도 선정
+- Breadth: 충분한 universe 일봉을 축적한 뒤 내부 계산 우선 검토
+
+주문용 KIS broker adapter는 KIS market-data adapter와 별도 모듈로 유지한다.
