@@ -34,23 +34,32 @@ PR #1이 CI 성공 후 `main`에 squash merge 됐다.
 작업 브랜치: `feature/data-foundation-v1`
 
 ### 완료
-- Quality/Growth/Value/Momentum/Revision 경계값 테스트 추가
-- 비정상적으로 큰/작은 입력에서도 factor score와 total score가 0~100 범위를 벗어나지 않는 extreme-value 테스트 추가
-- 데이터 공급자 비교 및 우선순위 문서 `docs/data-sources.md` 작성
-- provider-agnostic 데이터 모델 작성:
-  - Quote
-  - DailyBar
-  - IndexBar
-  - VolatilityPoint
-  - MacroPoint
+- Quality/Growth/Value/Momentum/Revision 경계값 테스트
+- extreme-value 테스트: factor/total score 0~100 범위 보장
+- 데이터 공급자 비교/우선순위 `docs/data-sources.md`
+- provider-agnostic 모델:
+  - Quote / DailyBar / IndexBar / VolatilityPoint / MacroPoint
   - ProviderMeta / DataFreshness
-- 시장/거시 공급자 인터페이스 작성:
-  - MarketDataProvider
-  - MacroDataProvider
+- MarketDataProvider / MacroDataProvider 인터페이스
 - Gradle main source에 `data/` 포함
+- `PriceFeatureCalculator` 구현:
+  - 20/60/120 trading-session 수익률
+  - 20/60/200일 이동평균 상·하 여부
+  - 252거래일 종가 기준 고점 대비 거리/낙폭
+  - 당일 거래량 / 직전 20거래일 평균 거래량
+  - 일봉 정렬/중복일 검증
+  - 데이터 부족 시 신호를 추정하지 않고 null 반환
+- `MarketInputFactory` 구현:
+  - Index trend feature를 `HybridStrategyEngine.MarketInputs`로 변환
+  - breadth/VIX/revision breadth/credit stress는 신뢰 가능한 데이터가 있을 때만 추가
+  - 비율성 보조입력 0~100 경계 처리
+- 가격특징/입력조립 단위테스트 추가
+
+### 데이터 파이프라인 현재 구조
+`외부 API → Provider Adapter → AUTOTRADING Data Models → Price/Market Feature Calculator → MarketInputs/StockInputs → Strategy Engine`
 
 ### 데이터 공급자 우선순위 v1
-1. KIS: 한국/미국 시세·일봉 우선
+1. KIS: 한국/미국 시세·일봉
 2. 지수 데이터 어댑터
 3. FRED: 정책금리/국채금리/인플레이션/일부 유동성·신용 지표
 4. VIX/VKOSPI
@@ -60,10 +69,10 @@ PR #1이 CI 성공 후 `main`에 squash merge 됐다.
 
 원칙:
 - 외부 vendor 응답 스키마는 adapter 내부에 격리
-- 코어는 AUTOTRADING 공통 모델만 사용
-- 모든 데이터는 provider/observedAt/freshness 메타데이터를 가짐
-- 신뢰할 수 없는 EPS Revision 데이터는 임의 proxy로 채우지 않고 Coverage 부족으로 표시
-- Broker 주문 API와 MarketDataProvider를 분리
+- 모든 데이터에 provider/observedAt/freshness 기록
+- 신뢰할 수 없는 EPS Revision proxy 금지
+- Market-data와 Broker order adapter 분리
+- 데이터 부족은 false/zero 신호가 아니라 missing으로 보존
 
 ### 공식 출처 확인
 - KIS Developers: REST 시세/기간별시세 및 WebSocket 기능 제공
@@ -71,20 +80,11 @@ PR #1이 CI 성공 후 `main`에 squash merge 됐다.
 - Cboe: VIX historical closing data 제공
 
 ## 다음 작업
-1. KIS market-data adapter skeleton + HTTP transport 분리
-2. FRED macro adapter skeleton
-3. DailyBar 기반 20/60/200일 추세·수익률·52주 낙폭 계산
-4. Market Regime 입력 생성기
-5. provider adapter mock tests
-
-## 이후
-- 실제 API credential을 저장소에 넣지 않는 로컬/서버 설정
-- 실제 데이터 smoke test
-- Backtest / Walk-forward
-- Portfolio / Thesis persistence
-- Mobile UI
-- 알림
-- KIS Broker adapter
+1. KIS market-data adapter skeleton + mock tests
+2. FRED macro adapter skeleton + mock tests
+3. KOSPI/KOSDAQ/S&P500/Nasdaq 실제 index mapping
+4. 실제 데이터 smoke test → Market Regime 생성
+5. 이후 market breadth / 재무 / valuation / consensus 순으로 확장
 
 ## 운영 원칙
 - Chat: 요구사항, 설계, 작업분해, 검수
