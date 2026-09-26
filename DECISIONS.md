@@ -58,15 +58,13 @@ CAGR, MDD, Sharpe/Sortino, 승률, 손익비, turnover, 거래비용, 슬리피�
 - 6개 핵심 그룹 중 4개 이상 확보
 - Quality와 Momentum 데이터는 반드시 존재
 
-이 조건을 만족하지 못하면 `recommendedPositionPct = 0`으로 두고 `데이터 보강` 상태로 표시한다.
-
-이 임계값은 향후 실제 데이터 공급자와 백테스트 결과로 조정할 수 있으나, 자동 완화하지 않는다.
+미충족 시 `recommendedPositionPct = 0`으로 두고 `데이터 보강` 상태로 표시한다.
 
 ## D-016 — Investor Fit은 매수점수가 아니라 설명 레이어다
-Buffett/Graham/Lynch/Soros-Momentum/Druckenmiller 적합도를 0~100으로 계산하지만, 이것만으로 주문을 허용하지 않는다. 종합점수와 시장국면, Coverage, 리스크 규칙이 우선한다.
+Buffett/Graham/Lynch/Soros-Momentum/Druckenmiller 적합도를 0~100으로 계산하지만, 이것만으로 주문을 허용하지 않는다.
 
 ## D-017 — Thesis가 BROKEN이면 점수와 관계없이 SELL 우선
-`ThesisState.BROKEN`은 Decision Engine에서 즉시 목표비중 0%를 반환한다. 가격이 싸졌다는 이유로 훼손된 투자논리를 덮지 않는다.
+`ThesisState.BROKEN`은 Decision Engine에서 즉시 목표비중 0%를 반환한다.
 
 ## D-018 — 포트폴리오 리스크가 커질 때 신규 위험 확대를 제한한다
 초기 v2 안전선:
@@ -74,4 +72,19 @@ Buffett/Graham/Lynch/Soros-Momentum/Druckenmiller 적합도를 0~100으로 계�
 - 포트폴리오 낙폭 -15% 이하이면 신규 위험 확대 금지
 - 개별 종목 목표비중 상한 7%
 
-향후 상관관계·변동성·현금목표를 추가한 뒤 이 규칙을 확장한다.
+## D-019 — 현금비중도 전략 포지션으로 관리한다
+초기 v1 현금 목표:
+- RISK_ON_STRONG: 10%
+- RISK_ON_NORMAL: 15%
+- NEUTRAL: 25%
+- RISK_OFF: 40%
+- PANIC: 35%
+
+PANIC의 현금 목표를 Risk-Off보다 약간 낮게 둔 이유는 고품질 종목에 대한 단계적 매수 여지를 남기기 위함이다. 단, 패닉 자체가 매수 신호는 아니다.
+
+포트폴리오 낙폭이 커지면 현금 버퍼를 추가한다:
+- -10% 이하: +5%
+- -15% 이하: +10%
+- -20% 이하: +15%
+
+최종 현금 목표는 10~60% 범위로 제한한다. 현재 주식비중이 `100 - 현금목표` 이상이면 신규 주식 익스포저 확대를 중지한다.
