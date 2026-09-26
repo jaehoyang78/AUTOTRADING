@@ -148,3 +148,20 @@ KIS 해외 시세는 거래소 코드가 필요하므로 `Venue`를 KRX/NASDAQ/N
 
 ## D-028 — KIS credential은 환경변수/보안저장소에서만 주입한다
 서버/CLI 기준 환경변수 이름은 `KIS_APP_KEY`, `KIS_APP_SECRET`으로 통일한다. `KisCredentials.toString()`은 값을 마스킹하며 오류 메시지에 secret을 포함하지 않는다.
+
+## D-029 — Macro는 기존 Market Regime을 대체하지 않고 제한된 overlay로 반영한다
+결정:
+- Price trend / breadth / volatility 중심의 기존 Market Regime을 base로 유지한다.
+- FRED 기반 Macro Tailwind Score를 별도 계산하고 base 85% + macro 15%로 합성한다.
+- macro 데이터가 없으면 기존 MarketAssessment를 그대로 반환한다.
+
+초기 macro 구성:
+- 정책금리 6개월 변화 20%
+- 10Y-2Y yield curve 15%
+- CPI YoY 및 방향 30%
+- Fed total assets 13주 변화 20%
+- KR 시장만 USD/KRW 3개월 변화 15%
+- High Yield OAS는 별도 credit-spread stress 입력으로 사용
+
+이유:
+매크로는 중요하지만 단일 거시모형이 가격·수급보다 시장판단을 과도하게 지배하지 않도록 하고, 향후 백테스트에서 macro 산식과 가중치를 독립적으로 교체/검증하기 위함이다.
