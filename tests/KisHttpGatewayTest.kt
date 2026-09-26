@@ -1,5 +1,6 @@
 package autotrading.data.kis
 
+import autotrading.data.MarketIndex
 import autotrading.data.http.HttpResult
 import autotrading.data.http.HttpTransport
 import java.time.Clock
@@ -82,6 +83,39 @@ class KisHttpGatewayTest {
         assertEquals("2026-09-25", us.first().date.toString())
         assertEquals(245.0, us.first().close)
         assertEquals(null, us.first().volume)
+    }
+
+    @Test
+    fun `KOSPI and KOSDAQ daily index use verified KIS mapping`() {
+        val requested = mutableListOf<String>()
+        val http = RecordingTransport { url, headers ->
+            requested += url
+            assertTrue(url.contains("inquire-daily-indexchartprice"))
+            assertEquals("FHKUP03500100", headers["tr_id"])
+            assertTrue(url.contains("FID_COND_MRKT_DIV_CODE=U"))
+            HttpResult(200, """{"rt_cd":"0","output2":[
+                {"stck_bsop_date":"20260926","bstp_nmix_prpr":"3500.12"},
+                {"stck_bsop_date":"20260925","bstp_nmix_prpr":"3488.50"}
+            ]}""")
+        }
+        val gateway = KisHttpGateway(KisCredentials("key", "secret"), http, fixed, "https://kis.test")
+
+        val kospi = gateway.indexBars(MarketIndex.KOSPI, 2)
+        val kosdaq = gateway.indexBars(MarketIndex.KOSDAQ, 2)
+
+        assertTrue(requested[0].contains("FID_INPUT_ISCD=0001"))
+        assertTrue(requested[1].contains("FID_INPUT_ISCD=1001"))
+        assertEquals("2026-09-25", kospi.first().date.toString())
+        assertEquals(3488.50, kospi.first().close)
+        assertEquals(3500.12, kosdaq.last().close)
+    }
+
+    @Test
+    fun `unverified US index mapping fails closed`() {
+        val http = RecordingTransport { _, _ -> error("GET should not be called") }
+        val gateway = KisHttpGateway(KisCredentials("key", "secret"), http, fixed, "https://kis.test")
+        assertFailsWith<UnsupportedOperationException> { gateway.indexBars(MarketIndex.SP500, 260) }
+        assertFailsWith<UnsupportedOperationException> { gateway.indexBars(MarketIndex.NASDAQ_COMPOSITE, 260) }
     }
 
     @Test

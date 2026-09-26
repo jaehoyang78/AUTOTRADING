@@ -15,13 +15,14 @@ import java.time.format.DateTimeFormatter
 /**
  * Live KIS market-data gateway only. This class intentionally contains no order methods.
  *
- * Verified scope in v1:
+ * Verified scope:
  * - KR current quote
  * - US current quote (explicit venue required)
- * - KR daily close history
- * - US daily close history
+ * - KR daily stock history
+ * - US daily stock close history
+ * - KOSPI/KOSDAQ daily index history
  *
- * Index/volatility endpoints remain unimplemented until their exact KIS mappings are verified.
+ * U.S. index and volatility endpoints remain unimplemented until their exact KIS mappings are verified.
  */
 class KisHttpGateway(
     private val credentials: KisCredentials,
@@ -107,8 +108,51 @@ class KisHttpGateway(
         return result.sortedBy { it.date }.takeLast(limit)
     }
 
-    override fun indexBars(index: MarketIndex, limit: Int): List<KisIndexBarDto> =
-        throw UnsupportedOperationException("KIS index mapping not verified yet: $index")
+    override fun indexBars(index: MarketIndex, limit: Int): List<KisIndexBarDto> {
+        require(limit > 0) { "limit must be positive" }
+        val indexCode = when (index) {
+            MarketIndex.KOSPI -> "0001"
+            MarketIndex.KOSDAQ -> "1001"
+            MarketIndex.SP500, MarketIndex.NASDAQ_COMPOSITE ->
+                throw UnsupportedOperationException("KIS U.S. index mapping not verified yet: $index")
+        }
+
+        val today = LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul")))
+        val startDate = today.minusDays((limit * 2L).coerceAtLeast(35L))
+        val start = startDate.format(DateTimeFormatter.BASIC_ISO_DATE)
+        var cursor = today
+        val observedAt = clock.instant()
+        val byDate = linkedMapOf<LocalDate, KisIndexBarDto>()
+
+        repeat(10) {
+            val end = cursor.format(DateTimeFormatter.BASIC_ISO_DATE)
+            val query = "FID_COND_MRKT_DIV_CODE=U&FID_INPUT_ISCD=$indexCode" +
+                "&FID_INPUT_DATE_1=$start&FID_INPUT_DATE_2=$end&FID_PERIOD_DIV_CODE=D"
+            val root = request(
+                "/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice",
+                "FHKUP03500100",
+                query
+            )
+            val raw = root.optJSONArray("output2") ?: return@repeat
+            var earliest: LocalDate? = null
+            for (i in 0 until raw.length()) {
+                val item = raw.optJSONObject(i) ?: continue
+                val date = parseBasicDate(item.optString("stck_bsop_date")) ?: continue
+                val close = nullableDouble(item, "bstp_nmix_prpr")
+                    ?.takeIf { it > 0.0 } ?: continue
+                byDate[date] = KisIndexBarDto(date, close, observedAt)
+                if (earliest == null || date.isBefore(earliest)) earliest = date
+            }
+
+            if (byDate.size >= limit) return byDate.values.sortedBy { it.date }.takeLast(limit)
+            val first = earliest ?: return byDate.values.sortedBy { it.date }.takeLast(limit)
+            if (!first.isAfter(startDate)) return byDate.values.sortedBy { it.date }.takeLast(limit)
+            val nextCursor = first.minusDays(1)
+            if (!nextCursor.isBefore(cursor)) return byDate.values.sortedBy { it.date }.takeLast(limit)
+            cursor = nextCursor
+        }
+        return byDate.values.sortedBy { it.date }.takeLast(limit)
+    }
 
     override fun volatility(index: VolatilityIndex, limit: Int): List<KisVolatilityDto> =
         throw UnsupportedOperationException("KIS volatility mapping not verified yet: $index")

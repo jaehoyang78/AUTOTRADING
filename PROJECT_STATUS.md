@@ -8,6 +8,7 @@
 - PR #2 Data Foundation v1
 - PR #3 Provider Adapters v1
 - PR #4 FRED Live Data Gateway v1
+- PR #7 Macro Regime Integration v1
 
 핵심 완료 기능:
 - Market Regime / 100점 Stock Score / Data Coverage
@@ -17,76 +18,70 @@
 - PriceFeatureCalculator / MarketInputFactory
 - KIS/FRED gateway 경계와 정규화 provider adapter
 - FRED live HTTP gateway
+- MacroFeatureCalculator / MacroRegimeOverlay / MarketRegimeComposer
 - GitHub Actions CI 및 단위테스트
 
 ## 2026-09-26 KIS Live Market v1
-작업 브랜치: `feature/kis-live-market-v1`
-
 ### 완료
-- `Venue` 모델 추가: KRX / NASDAQ / NYSE / AMEX
-- `MarketDataProvider`를 venue-aware 인터페이스로 변경
-- KR은 KRX를 기본 venue로 강제
-- US는 NASDAQ/NYSE/AMEX 명시 없이는 조회 금지
-- `KisInstrument` / `KisVenue` 도입
-- `HttpTransport` POST 지원 추가
-- 비밀값을 출력하지 않는 `KisCredentials` 추가
-- 환경변수 이름 확정: `KIS_APP_KEY`, `KIS_APP_SECRET`
-- `KisHttpGateway` OAuth token 발급/캐시 구현
-- token 만료 60초 전 갱신
-- 국내 현재가: `inquire-price` / `FHKST01010100`
-- 미국 현재가: overseas price / `HHDFS00000300`
-- 미국 venue → KIS EXCD: NASDAQ=NAS, NYSE=NYS, AMEX=AMS
-- 국내 일봉: `inquire-daily-itemchartprice` / `FHKST03010100`
-- 미국 일봉 종가: `dailyprice` / `HHDFS76240000`
-- 국내 일봉 OHLC/거래량은 확인된 필드만 파싱
-- 미국 일봉은 검증된 `xymd`/`clos`만 사용하고 미검증 OHLC/거래량은 null 유지
-- KIS `rt_cd != 0`, HTTP 비정상 응답은 fail-closed
-- OAuth token 재사용 / venue 매핑 / 일봉 정렬 / 오류 / secret redaction 단위테스트
-- 기존 provider/price feature 테스트를 venue 모델에 맞게 갱신
-- 브랜치 CI 성공 확인
-
-### 의도적으로 미구현
-- KIS index API mapping: 정확한 엔드포인트/TR ID 검증 전 미구현
-- KIS volatility API mapping: 정확한 VKOSPI/VIX 경로 검증 전 미구현
-- Broker 주문: 이 gateway에 절대 포함하지 않음
-- 미국 일봉 OHLC/volume: 필드 검증 전 임의 파싱 금지
+- `Venue`: KRX / NASDAQ / NYSE / AMEX
+- venue-aware `MarketDataProvider`
+- KIS OAuth token 발급/캐시
+- 국내/미국 현재가
+- 국내 일봉 OHLC/거래량
+- 미국 일봉 종가
+- market-data gateway와 broker 분리
+- KIS 업무/HTTP 오류 fail-closed
+- secret redaction
 
 ### 보안
 - AppKey/AppSecret은 코드/커밋/Issue/fixture에 저장하지 않는다.
-- `KisCredentials.toString()`은 항상 마스킹한다.
-- HTTP 오류/업무 오류 메시지에 credential을 포함하지 않는다.
+- 서버/CLI 환경변수: `KIS_APP_KEY`, `KIS_APP_SECRET`
 - 실계좌 주문 모듈과 시세 gateway는 독립 유지한다.
 
 ## 2026-09-26 Macro Regime Integration v1
-작업 브랜치: `feature/data-layer-v1`
+### 완료
+- 정책금리 6개월 변화
+- 10Y-2Y yield curve
+- CPI YoY 및 방향
+- Fed total assets 13주 변화
+- KR용 USD/KRW 3개월 변화
+- HY OAS → credit spread stress
+- base Market Regime 85% + Macro Tailwind 15%
+- missing macro → 기존 MarketAssessment 유지
+- 합성 경로 `MarketRegimeComposer`
 
-### 추가
-- `MacroFeatureCalculator`
-  - 정책금리 6개월 변화
-  - 10Y-2Y yield curve
-  - CPI YoY 및 3개월 방향
-  - Fed total assets 13주 변화
-  - KR용 USD/KRW 3개월 변화
-  - High Yield OAS 기반 credit stress
-- 누락 데이터는 0점 처리하지 않고 사용 가능한 macro component만 재정규화
-- KR/US macro coverage 계산
-- `MacroRegimeOverlay`
-  - 기존 Market Regime 점수 85% + Macro Tailwind 15%
-  - macro가 없으면 기존 MarketAssessment를 그대로 유지
-- `MarketRegimeComposer`
-  - Price trend + supplementary breadth/volatility + credit stress + macro overlay를 한 경로로 조립
-- favorable/adverse/missing macro 단위테스트 추가
+## 2026-09-26 Domestic Index Mapping v1
+작업 브랜치: `feature/index-mapping-v1`
 
-### 설계 의도
-기존 Market Regime 엔진을 직접 크게 변경하지 않고 매크로를 독립 overlay로 둔다. 매크로 산식은 향후 백테스트에서 교체/조정하기 쉽고, 데이터 누락 시 기존 엔진이 그대로 작동한다.
+### 공식 KIS 매핑 확인
+한국투자증권 공식 `open-trading-api` 예제 기준:
+- KOSPI 업종코드: `0001`
+- KOSDAQ 업종코드: `1001`
+- Path: `/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice`
+- TR ID: `FHKUP03500100`
+- `FID_COND_MRKT_DIV_CODE=U`
+- 날짜 필드: `stck_bsop_date`
+- 종가 필드: `bstp_nmix_prpr`
+
+### 구현
+- `KisHttpGateway.indexBars()`에서 KOSPI/KOSDAQ 지원
+- 장기 추세(200일) 계산을 위해 날짜 커서를 이동하며 최대 10페이지 반복 조회
+- 결과는 중복 날짜 제거 후 oldest-to-newest 정렬
+- `limit`에 맞춰 최근 데이터만 반환
+- KOSPI/KOSDAQ URL/TR-ID/index-code 테스트 추가
+
+### Fail-closed 유지
+- `SP500`, `NASDAQ_COMPOSITE`는 공식 KIS 지수 mapping이 검증되지 않아 여전히 `UnsupportedOperationException`
+- VIX/VKOSPI도 검증된 KIS endpoint 전까지 미구현
+- 추측한 심볼/TR-ID를 운영 코드에 넣지 않는다.
 
 ## 다음 작업
-1. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping 검증
-2. 실제 KIS/FRED credential smoke-test 실행 경로
+1. KIS/FRED 실제 credential smoke-test 실행 경로
+2. S&P500/Nasdaq 공식 지수 mapping 추가 조사
 3. VIX/VKOSPI + market breadth
 4. 미국 일봉 거래량/OHLC 추가 검증
-5. 재무/밸류에이션 데이터 공급자 연결
-6. Historical snapshot schema / Backtest 시작
+5. Historical snapshot schema / Backtest 시작
+6. 재무/밸류에이션/EPS Revision 데이터 공급자 연결
 
 ## 운영 원칙
 - Chat: 요구사항·설계·작업분해·검수
