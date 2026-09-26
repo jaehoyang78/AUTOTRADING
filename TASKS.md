@@ -42,6 +42,7 @@
 - [x] Portfolio cash/exposure tests
 - [x] Price feature calculator tests
 - [x] Market input assembly tests
+- [x] Provider adapter normalization tests
 
 ## P3 — 데이터 연결
 ### 기반
@@ -54,12 +55,14 @@
 - [x] 52주 고점 대비 거리/낙폭 계산
 - [x] 20일 거래량 비율 계산
 - [x] normalized feature → MarketInputs assembly
+- [x] KIS gateway/adapter skeleton
+- [x] FRED gateway/adapter skeleton
 
 ### 한국
-- [ ] KIS provider adapter
-- [ ] KOSPI/KOSDAQ 지수
-- [ ] 국내 종목 일봉
-- [ ] 거래량
+- [ ] KIS live HTTP/OAuth gateway
+- [ ] KOSPI/KOSDAQ 지수 mapping
+- [ ] 국내 종목 일봉 실제 연결
+- [ ] 거래량 실제 연결
 - [ ] VKOSPI
 - [ ] Market breadth
 - [ ] 재무
@@ -67,10 +70,11 @@
 - [ ] 컨센서스/EPS Revision
 
 ### 미국
-- [ ] KIS US provider adapter
-- [ ] S&P500/Nasdaq 지수
-- [ ] 미국 종목 일봉
-- [ ] 거래량
+- [ ] KIS US live HTTP gateway
+- [ ] 미국 거래소/venue 식별 규칙
+- [ ] S&P500/Nasdaq 지수 mapping
+- [ ] 미국 종목 일봉 실제 연결
+- [ ] 거래량 실제 연결
 - [ ] VIX
 - [ ] Market breadth
 - [ ] 재무
@@ -78,13 +82,13 @@
 - [ ] EPS Revision
 
 ### Macro
-- [ ] FRED provider adapter
-- [ ] 정책금리
-- [ ] 국채금리
-- [ ] 인플레이션
-- [ ] 달러/환율
-- [ ] 유동성 proxy
-- [ ] credit spread
+- [ ] FRED live HTTP gateway
+- [ ] 정책금리 series config
+- [ ] 국채금리 series config
+- [ ] 인플레이션 series config
+- [ ] 달러/환율 series config
+- [ ] 유동성 proxy series config
+- [ ] credit spread series config
 
 ## P4 — Backtest
 - [ ] Historical snapshot schema
@@ -121,7 +125,7 @@
 - [ ] 서버/푸시 구조
 
 ## P7 — Broker
-- [ ] KIS adapter
+- [ ] KIS broker adapter
 - [ ] paper/simulation mode
 - [ ] live mode 분리
 - [ ] 계좌/키 secure storage
@@ -132,10 +136,10 @@
 - [ ] timeout no-retry rule
 
 ## 다음 최우선 작업
-1. P3 KIS market-data adapter skeleton + mock tests
-2. P3 FRED macro adapter skeleton + mock tests
-3. KOSPI/S&P500 등 실제 index mapping
-4. 실제 데이터 smoke test와 Market Regime 생성
+1. P3 FRED live HTTP gateway + series configuration
+2. P3 KIS live HTTP/OAuth gateway (market data only)
+3. 미국 종목 venue 식별 모델 확정
+4. 실제 데이터 smoke test → Market Regime 생성
 
 ## 재개용 한 줄 지시
 > `jaehoyang78/AUTOTRADING`의 README.md, PROJECT_STATUS.md, DECISIONS.md, ARCHITECTURE.md, ROADMAP.md, TASKS.md를 먼저 읽고 TASKS.md의 가장 높은 우선순위 미완료 항목부터 이어서 진행해. 중요한 결정 변경 시 DECISIONS.md와 PROJECT_STATUS.md도 함께 갱신해.
