@@ -111,11 +111,35 @@ class KisHttpGatewayTest {
     }
 
     @Test
-    fun `unverified US index mapping fails closed`() {
+    fun `S&P500 daily index uses verified overseas index API and SPX code`() {
+        val requested = mutableListOf<String>()
+        val http = RecordingTransport { url, headers ->
+            requested += url
+            assertTrue(url.contains("/uapi/overseas-price/v1/quotations/inquire-daily-chartprice"))
+            assertEquals("FHKST03030100", headers["tr_id"])
+            assertTrue(url.contains("FID_COND_MRKT_DIV_CODE=N"))
+            assertTrue(url.contains("FID_INPUT_ISCD=SPX"))
+            HttpResult(200, """{"rt_cd":"0","output2":[
+                {"stck_bsop_date":"20260925","ovrs_nmix_prpr":"6700.25"},
+                {"stck_bsop_date":"20260924","ovrs_nmix_prpr":"6688.75"}
+            ]}""")
+        }
+        val gateway = KisHttpGateway(KisCredentials("key", "secret"), http, fixed, "https://kis.test")
+        val sp500 = gateway.indexBars(MarketIndex.SP500, 2)
+
+        assertEquals(1, requested.size)
+        assertEquals("2026-09-24", sp500.first().date.toString())
+        assertEquals(6688.75, sp500.first().close)
+        assertEquals(6700.25, sp500.last().close)
+    }
+
+    @Test
+    fun `unverified Nasdaq Composite mapping remains fail closed`() {
         val http = RecordingTransport { _, _ -> error("GET should not be called") }
         val gateway = KisHttpGateway(KisCredentials("key", "secret"), http, fixed, "https://kis.test")
-        assertFailsWith<UnsupportedOperationException> { gateway.indexBars(MarketIndex.SP500, 260) }
-        assertFailsWith<UnsupportedOperationException> { gateway.indexBars(MarketIndex.NASDAQ_COMPOSITE, 260) }
+        assertFailsWith<UnsupportedOperationException> {
+            gateway.indexBars(MarketIndex.NASDAQ_COMPOSITE, 260)
+        }
     }
 
     @Test
