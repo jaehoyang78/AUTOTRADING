@@ -3,75 +3,56 @@
 ## Canonical Repository
 `jaehoyang78/AUTOTRADING`
 
-이 저장소가 하이브리드 투자전략 프로젝트의 정식 기준 저장소다.
+## main 기준 완료
+- PR #1 Core Engine v2
+- PR #2 Data Foundation v1
+- PR #3 Provider Adapters v1
 
-## 완료된 기준선
+핵심 완료 기능:
+- Market Regime / 100점 Stock Score / Data Coverage
+- Investor Fit / Thesis & Decision Engine
+- 종목·섹터·포트폴리오 위험 가드와 Cash Target
+- 공통 Quote/DailyBar/Index/Volatility/Macro 모델
+- PriceFeatureCalculator / MarketInputFactory
+- KIS/FRED gateway 경계와 정규화 provider adapter
+- GitHub Actions CI 및 단위테스트
 
-### Core Engine v2 — main
-PR #1 CI 성공 후 main 반영.
-- Market Regime / 100점 Stock Score
-- Data Coverage gate
-- Investor Fit
-- Thesis/Decision Engine
-- 종목·섹터·포트폴리오 위험 가드
-- Cash Target / Max Equity Exposure
-
-### Data Foundation v1 — main
-PR #2 CI 성공 후 main 반영.
-- provider-agnostic Quote/DailyBar/Index/Volatility/Macro 모델
-- MarketDataProvider / MacroDataProvider
-- factor boundary/extreme-value tests
-- PriceFeatureCalculator
-- MarketInputFactory
-- KIS/FRED/Cboe 데이터소스 전략 문서
-
-## 2026-09-26 Provider Adapters v1
-작업 브랜치: `feature/provider-adapters-v1`
+## 2026-09-26 Live Data Gateways v1
+작업 브랜치: `feature/live-data-gateways-v1`
 
 ### 완료
-- `KisGateway` 저수준 계약 정의
-- `KisMarketDataProvider` 정규화 어댑터 구현
-- KR/US quote와 daily bar를 공통 AUTOTRADING 모델로 변환하는 경계 확립
-- index/volatility gateway 경계 정의
-- `FredGateway` 저수준 계약 정의
-- `FredMacroDataProvider` 정규화 어댑터 구현
-- provider 응답 날짜를 정렬하고 요청 limit을 적용
-- 잘못된 limit/series input 방어
-- fake KIS/FRED gateway를 이용한 CI 가능한 adapter 단위테스트 추가
+- injectable `HttpTransport` / JDK HTTP 구현
+- FRED `series/observations` 실제 REST 호출용 `FredHttpGateway` 구현
+- `FRED_API_KEY` 환경변수 주입 경로 제공
+- JSON missing value(`.`)를 신호로 변조하지 않고 건너뜀
+- HTTP 2xx가 아니면 fail-closed
+- 네트워크 없이 fixture로 HTTP/JSON parsing 테스트
+- 최신 Maven Central `org.json:json:20260814` 사용
+- FRED macro series catalog v1:
+  - DFF: Effective Federal Funds Rate
+  - DGS2 / DGS10: 2Y / 10Y Treasury
+  - CPIAUCSL: CPI
+  - WALCL: Fed total assets liquidity proxy
+  - DEXKOUS: USD/KRW
+  - BAMLH0A0HYM2: US High Yield OAS
 
-### 설계 의도
-`실제 OAuth/HTTP/JSON 파싱 → Gateway → Provider Adapter → 공통 데이터 모델 → Feature Calculator → Strategy Engine`
-
-따라서:
-- CI는 실제 API 키가 없어도 adapter를 검증할 수 있다.
-- 실계좌/AppKey/AppSecret을 GitHub에 저장할 필요가 없다.
-- KIS API 변경은 live gateway에서 흡수하고 전략 엔진까지 전파하지 않는다.
-- FRED API 키/HTTP 역시 live gateway에서만 처리한다.
+### 중요한 데이터 주의
+- FRED macro는 발표주기와 revision을 고려해야 하며 단순 실시간 데이터처럼 취급하지 않는다.
+- historical backtest에는 당시 이용 가능했던 값(vintage/point-in-time)을 고려해야 한다.
+- BAMLH0A0HYM2는 2026년 4월부터 FRED에서 제공되는 과거 관측치가 3년으로 제한된다는 공식 안내가 있으므로 장기 백테스트 소스로 그대로 사용하지 않는다.
 
 ## 다음 작업
-1. FRED live HTTP gateway + macro series configuration
-2. KIS live HTTP/OAuth gateway (시세 전용; broker 주문과 분리)
-3. 미국 종목 venue(NASDAQ/NYSE/AMEX) 식별 모델 확정
-4. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping
-5. 실제 데이터 smoke test → Market Regime 생성
+1. KIS live HTTP/OAuth market-data gateway
+2. 미국 종목 venue(NASDAQ/NYSE/AMEX) 모델
+3. macro feature calculator (금리곡선, CPI YoY, 유동성/credit 변화)
+4. 실제 FRED/KIS smoke test → Market Regime 생성
+5. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping
 
-## 이후
-- VIX/VKOSPI
-- market breadth
-- 재무/밸류에이션
-- consensus/EPS Revision
-- historical snapshot/backtest
-- mobile UI/alerts
-- KIS broker adapter (최종 사용자 승인형)
-
-## 운영 원칙
-- Chat: 요구사항·설계·작업분해·검수
-- Work: 저장소 탐색·다단계 실행·테스트/빌드
-- Codex: 실제 코드 수정·오류 해결
-- GitHub: Issue/PR/버전/진행상태
-- GitHub Actions: 자동 테스트/빌드
-
-중요 변경 시 `DECISIONS.md`, `PROJECT_STATUS.md`, `TASKS.md`를 함께 업데이트한다.
+## 보안/운영 원칙
+- AppKey/AppSecret/FRED key/계좌정보를 GitHub, Issue, 테스트 fixture에 저장하지 않는다.
+- Market-data와 Broker order adapter를 분리한다.
+- CI는 외부 API나 비밀키 없이 통과 가능해야 한다.
+- 중요한 변경 시 `DECISIONS.md`, `PROJECT_STATUS.md`, `TASKS.md`를 함께 업데이트한다.
 
 ## 재개 순서
 `README.md` → `PROJECT_STATUS.md` → `DECISIONS.md` → `ARCHITECTURE.md` → `ROADMAP.md` → `TASKS.md` → 최근 PR/CI.
