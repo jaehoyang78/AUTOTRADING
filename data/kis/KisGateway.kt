@@ -7,18 +7,31 @@ import java.time.LocalDate
 
 /**
  * Low-level KIS contract. Live HTTP/OAuth details stay behind this interface.
- * Tests can replace it with an in-memory fake without any credentials.
+ * U.S. instruments require an explicit venue because KIS uses exchange-specific codes.
  */
 interface KisGateway {
     val providerName: String get() = "KIS"
 
-    fun quote(symbol: String, market: KisMarket): KisQuoteDto?
-    fun dailyBars(symbol: String, market: KisMarket, limit: Int): List<KisDailyBarDto>
+    fun quote(instrument: KisInstrument): KisQuoteDto?
+    fun dailyBars(instrument: KisInstrument, limit: Int): List<KisDailyBarDto>
     fun indexBars(index: MarketIndex, limit: Int): List<KisIndexBarDto>
     fun volatility(index: VolatilityIndex, limit: Int): List<KisVolatilityDto>
 }
 
 enum class KisMarket { KR, US }
+enum class KisVenue { KRX, NASDAQ, NYSE, AMEX }
+
+data class KisInstrument(
+    val symbol: String,
+    val market: KisMarket,
+    val venue: KisVenue
+) {
+    init {
+        require(symbol.isNotBlank()) { "symbol is required" }
+        require(market != KisMarket.KR || venue == KisVenue.KRX) { "KR instruments must use KRX" }
+        require(market != KisMarket.US || venue != KisVenue.KRX) { "US instruments require NASDAQ/NYSE/AMEX" }
+    }
+}
 
 data class KisQuoteDto(
     val symbol: String,

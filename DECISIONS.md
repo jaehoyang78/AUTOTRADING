@@ -127,3 +127,24 @@ PANIC의 현금 목표를 Risk-Off보다 약간 낮게 둔 이유는 고품질 �
 
 비밀정보 원칙:
 AppKey/AppSecret/FRED API key/계좌정보는 코드·커밋·Issue·테스트 fixture에 저장하지 않는다. live gateway는 환경변수 또는 플랫폼 보안 저장소에서만 주입받도록 구현한다.
+
+## D-025 — 미국 종목은 시장(US)만으로 식별하지 않고 venue를 명시한다
+KIS 해외 시세는 거래소 코드가 필요하므로 `Venue`를 KRX/NASDAQ/NYSE/AMEX로 모델링한다.
+
+규칙:
+- KR → KRX만 허용
+- US → NASDAQ/NYSE/AMEX 중 하나를 반드시 지정
+- venue를 추측해서 주문/시세 조회하지 않는다
+
+이유: 동일 심볼·거래소 혼동과 잘못된 KIS EXCD 사용을 막기 위함이다.
+
+## D-026 — KIS live gateway는 시세 전용이며 주문 메서드를 넣지 않는다
+`KisHttpGateway`에는 OAuth, 현재가, 일봉 같은 market-data 기능만 둔다. 향후 주문은 별도 `KisBrokerAdapter`에서 구현한다.
+
+## D-027 — 검증되지 않은 KIS 응답 필드는 null로 남긴다
+국내 일봉은 기존 동작에서 확인된 OHLC/거래량 필드를 파싱한다. 미국 일봉 v1은 확인된 `xymd`와 `clos`만 파싱하며 OHLC/volume을 추정하지 않는다.
+
+이는 데이터 부족을 숨기기보다 Coverage/feature 계산에서 명시적으로 드러내기 위한 결정이다.
+
+## D-028 — KIS credential은 환경변수/보안저장소에서만 주입한다
+서버/CLI 기준 환경변수 이름은 `KIS_APP_KEY`, `KIS_APP_SECRET`으로 통일한다. `KisCredentials.toString()`은 값을 마스킹하며 오류 메시지에 secret을 포함하지 않는다.

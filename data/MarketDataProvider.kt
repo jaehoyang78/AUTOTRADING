@@ -3,10 +3,10 @@ package autotrading.data
 interface MarketDataProvider {
     val providerName: String
 
-    fun quote(symbol: String, market: Market): Quote?
+    fun quote(symbol: String, market: Market, venue: Venue? = null): Quote?
 
     /** Oldest-to-newest daily bars. */
-    fun dailyBars(symbol: String, market: Market, limit: Int = 260): List<DailyBar>
+    fun dailyBars(symbol: String, market: Market, venue: Venue? = null, limit: Int = 260): List<DailyBar>
 
     /** Oldest-to-newest index closes. */
     fun indexBars(index: MarketIndex, limit: Int = 260): List<IndexBar>

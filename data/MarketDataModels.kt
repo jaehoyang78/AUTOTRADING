@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 enum class Market { KR, US }
+enum class Venue { KRX, NASDAQ, NYSE, AMEX }
 enum class DataFreshness { FRESH, STALE, MISSING }
 enum class MarketIndex { KOSPI, KOSDAQ, SP500, NASDAQ_COMPOSITE }
 enum class VolatilityIndex { VKOSPI, VIX }
@@ -17,6 +18,7 @@ data class ProviderMeta(
 data class Quote(
     val symbol: String,
     val market: Market,
+    val venue: Venue?,
     val price: Double,
     val volume: Long?,
     val changePercent: Double?,
@@ -26,6 +28,7 @@ data class Quote(
 data class DailyBar(
     val symbol: String,
     val market: Market,
+    val venue: Venue?,
     val date: LocalDate,
     val open: Double?,
     val high: Double?,
