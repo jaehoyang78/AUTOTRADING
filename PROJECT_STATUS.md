@@ -9,6 +9,7 @@
 - PR #3 Provider Adapters v1
 - PR #4 FRED Live Data Gateway v1
 - PR #7 Macro Regime Integration v1
+- PR #8 Verified KOSPI/KOSDAQ Index Mapping v1
 
 핵심 완료 기능:
 - Market Regime / 100점 Stock Score / Data Coverage
@@ -19,6 +20,7 @@
 - KIS/FRED gateway 경계와 정규화 provider adapter
 - FRED live HTTP gateway
 - MacroFeatureCalculator / MacroRegimeOverlay / MarketRegimeComposer
+- KOSPI/KOSDAQ verified KIS index history
 - GitHub Actions CI 및 단위테스트
 
 ## 2026-09-26 KIS Live Market v1
@@ -51,32 +53,49 @@
 - 합성 경로 `MarketRegimeComposer`
 
 ## 2026-09-26 Domestic Index Mapping v1
-작업 브랜치: `feature/index-mapping-v1`
-
-### 공식 KIS 매핑 확인
-한국투자증권 공식 `open-trading-api` 예제 기준:
-- KOSPI 업종코드: `0001`
-- KOSDAQ 업종코드: `1001`
-- Path: `/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice`
-- TR ID: `FHKUP03500100`
+### 공식 KIS 매핑
+- KOSPI `0001`
+- KOSDAQ `1001`
+- `/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice`
+- TR ID `FHKUP03500100`
 - `FID_COND_MRKT_DIV_CODE=U`
-- 날짜 필드: `stck_bsop_date`
-- 종가 필드: `bstp_nmix_prpr`
+- date `stck_bsop_date`
+- close `bstp_nmix_prpr`
 
 ### 구현
-- `KisHttpGateway.indexBars()`에서 KOSPI/KOSDAQ 지원
-- 장기 추세(200일) 계산을 위해 날짜 커서를 이동하며 최대 10페이지 반복 조회
-- 결과는 중복 날짜 제거 후 oldest-to-newest 정렬
-- `limit`에 맞춰 최근 데이터만 반환
-- KOSPI/KOSDAQ URL/TR-ID/index-code 테스트 추가
+- KOSPI/KOSDAQ `indexBars()` 지원
+- 200일 추세 확보를 위한 날짜 커서 반복 조회
+- 중복 날짜 제거 및 oldest-to-newest 정렬
+- S&P500/Nasdaq/VIX/VKOSPI는 공식 매핑 검증 전 fail-closed
 
-### Fail-closed 유지
-- `SP500`, `NASDAQ_COMPOSITE`는 공식 KIS 지수 mapping이 검증되지 않아 여전히 `UnsupportedOperationException`
-- VIX/VKOSPI도 검증된 KIS endpoint 전까지 미구현
-- 추측한 심볼/TR-ID를 운영 코드에 넣지 않는다.
+## 2026-09-26 Live Credential Smoke Path v1
+작업 브랜치: `feature/live-smoke-v1`
+
+### 구현
+- `tools/LiveSmoke.kt`
+- Gradle `liveSmoke` verification task
+- GitHub Actions 수동 workflow: `Live Credential Smoke`
+- 실행 대상: `KIS`, `FRED`, `BOTH`
+
+### KIS smoke — 읽기 전용
+- `KIS_APP_KEY`, `KIS_APP_SECRET`을 환경변수/GitHub Secrets에서만 읽음
+- 삼성전자 `005930` 현재가 조회
+- KOSPI 최근 5개 지수 일봉 조회
+- 양수 가격, non-empty index, 시간순 정렬 확인
+- 계좌번호/주문 메서드 사용 없음
+
+### FRED smoke — 읽기 전용
+- `FRED_API_KEY`를 환경변수/GitHub Secrets에서만 읽음
+- DFF 최근 3개 observation 조회
+- non-empty 확인
+
+### 중요한 상태 구분
+- smoke **실행 경로 구축은 완료**
+- 실제 credential을 이용한 live smoke **성공 확인은 아직 미완료**
+- 키는 source/fixture/Issue/PR/chat에 남기지 않는다.
 
 ## 다음 작업
-1. KIS/FRED 실제 credential smoke-test 실행 경로
+1. Repository Secrets 설정 후 KIS/FRED live smoke 성공 확인
 2. S&P500/Nasdaq 공식 지수 mapping 추가 조사
 3. VIX/VKOSPI + market breadth
 4. 미국 일봉 거래량/OHLC 추가 검증
