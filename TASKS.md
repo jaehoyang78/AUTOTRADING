@@ -40,6 +40,8 @@
 - [x] Broken-thesis SELL test
 - [x] Sector-concentration risk test
 - [x] Portfolio cash/exposure tests
+- [x] Price feature calculator tests
+- [x] Market input assembly tests
 
 ## P3 — 데이터 연결
 ### 기반
@@ -47,6 +49,11 @@
 - [x] Provider-agnostic Quote/DailyBar/Index/Volatility/Macro 모델
 - [x] MarketDataProvider 인터페이스
 - [x] MacroDataProvider 인터페이스
+- [x] DailyBar → 20/60/120일 수익률 계산
+- [x] IndexBar → 20/60/200일 추세 계산
+- [x] 52주 고점 대비 거리/낙폭 계산
+- [x] 20일 거래량 비율 계산
+- [x] normalized feature → MarketInputs assembly
 
 ### 한국
 - [ ] KIS provider adapter
@@ -127,8 +134,8 @@
 ## 다음 최우선 작업
 1. P3 KIS market-data adapter skeleton + mock tests
 2. P3 FRED macro adapter skeleton + mock tests
-3. DailyBar에서 20/60/200일 추세·수익률·52주 낙폭 계산기
-4. 실제 시장 데이터로 Market Regime 입력 생성기
+3. KOSPI/S&P500 등 실제 index mapping
+4. 실제 데이터 smoke test와 Market Regime 생성
 
 ## 재개용 한 줄 지시
 > `jaehoyang78/AUTOTRADING`의 README.md, PROJECT_STATUS.md, DECISIONS.md, ARCHITECTURE.md, ROADMAP.md, TASKS.md를 먼저 읽고 TASKS.md의 가장 높은 우선순위 미완료 항목부터 이어서 진행해. 중요한 결정 변경 시 DECISIONS.md와 PROJECT_STATUS.md도 함께 갱신해.
