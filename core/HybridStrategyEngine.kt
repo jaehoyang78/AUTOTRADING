@@ -1,21 +1,20 @@
 package autotrading.core
 
 /**
- * Hybrid investment strategy engine v1.
+ * AUTOTRADING hybrid investment strategy engine v2.
  *
- * Separates market regime, stock scoring and position sizing.
- * Missing inputs are re-normalized across available metrics rather than
- * automatically treated as zero. Data coverage will be added explicitly.
+ * Design goals:
+ * - separate market regime, stock scoring and position sizing
+ * - do not treat missing data as bad data
+ * - expose data coverage so low-information scores are obvious
+ * - explain which investor styles a stock resembles
+ * - translate analysis into a bounded action recommendation
  */
 object HybridStrategyEngine {
 
-    enum class MarketRegime {
-        RISK_ON_STRONG,
-        RISK_ON_NORMAL,
-        NEUTRAL,
-        RISK_OFF,
-        PANIC
-    }
+    enum class MarketRegime { RISK_ON_STRONG, RISK_ON_NORMAL, NEUTRAL, RISK_OFF, PANIC }
+    enum class DecisionAction { BUY, ADD, HOLD, REDUCE, SELL, AVOID, WATCH }
+    enum class ThesisState { STRONG, INTACT, WEAKENING, BROKEN, UNKNOWN }
 
     data class MarketInputs(
         val indexAbove20d: Boolean? = null,
@@ -32,7 +31,8 @@ object HybridStrategyEngine {
         val score: Int,
         val regime: MarketRegime,
         val riskMultiplier: Double,
-        val summary: String
+        val summary: String,
+        val dataCoveragePct: Int
     )
 
     data class StockInputs(
@@ -71,22 +71,58 @@ object HybridStrategyEngine {
         val macroFit: Double?
     )
 
+    data class DataCoverage(
+        val availableFields: Int,
+        val totalFields: Int,
+        val percentage: Int,
+        val criticalGroupsAvailable: Int,
+        val totalCriticalGroups: Int,
+        val sufficientForRecommendation: Boolean
+    )
+
+    data class InvestorFit(
+        val buffett: Int,
+        val graham: Int,
+        val lynch: Int,
+        val sorosMomentum: Int,
+        val druckenmiller: Int
+    )
+
     data class StockAssessment(
         val totalScore: Int,
         val grade: String,
         val components: ComponentScores,
+        val coverage: DataCoverage,
+        val investorFit: InvestorFit,
         val basePositionPct: Double,
         val recommendedPositionPct: Double,
         val action: String,
         val reasons: List<String>
     )
 
+    data class DecisionInputs(
+        val assessment: StockAssessment,
+        val thesisState: ThesisState = ThesisState.UNKNOWN,
+        val currentPositionPct: Double = 0.0,
+        val currentSectorPositionPct: Double = 0.0,
+        val portfolioDrawdownPct: Double = 0.0
+    )
+
+    data class Decision(
+        val action: DecisionAction,
+        val targetPositionPct: Double,
+        val rationale: List<String>
+    )
+
     fun assessMarket(i: MarketInputs): MarketAssessment {
         val weighted = mutableListOf<Pair<Double, Double>>()
+        var available = 0
         fun add(value: Double?, weight: Double) {
-            if (value != null) weighted += value.coerceIn(0.0, 100.0) to weight
+            if (value != null) {
+                available++
+                weighted += value.coerceIn(0.0, 100.0) to weight
+            }
         }
-
         add(i.indexAbove20d?.let { if (it) 75.0 else 25.0 }, 10.0)
         add(i.indexAbove60d?.let { if (it) 78.0 else 22.0 }, 15.0)
         add(i.indexAbove200d?.let { if (it) 82.0 else 18.0 }, 20.0)
@@ -134,25 +170,25 @@ object HybridStrategyEngine {
             MarketRegime.RISK_OFF -> "Risk-Off · 신규매수 축소, 현금 비중 확대"
             MarketRegime.PANIC -> "패닉 · 우량주만 분할매수, 저품질주는 회피"
         }
-        return MarketAssessment(score, regime, riskMultiplier, summary)
+        return MarketAssessment(score, regime, riskMultiplier, summary, available * 100 / 8)
     }
 
     fun assessStock(i: StockInputs, market: MarketAssessment): StockAssessment {
-        val quality = qualityScore(i)
-        val growth = growthScore(i)
-        val value = valueScore(i)
-        val momentum = momentumScore(i)
-        val revision = revisionScore(i)
-        val macro = i.sectorMacroFitScore?.coerceIn(0.0, 100.0)
-
-        val components = ComponentScores(quality, growth, value, momentum, revision, macro)
+        val components = ComponentScores(
+            quality = qualityScore(i),
+            growth = growthScore(i),
+            value = valueScore(i),
+            momentum = momentumScore(i),
+            revision = revisionScore(i),
+            macroFit = i.sectorMacroFitScore?.coerceIn(0.0, 100.0)
+        )
         val weighted = mutableListOf<Pair<Double, Double>>()
-        quality?.let { weighted += it to 25.0 }
-        growth?.let { weighted += it to 20.0 }
-        value?.let { weighted += it to 20.0 }
-        momentum?.let { weighted += it to 15.0 }
-        revision?.let { weighted += it to 10.0 }
-        macro?.let { weighted += it to 10.0 }
+        components.quality?.let { weighted += it to 25.0 }
+        components.growth?.let { weighted += it to 20.0 }
+        components.value?.let { weighted += it to 20.0 }
+        components.momentum?.let { weighted += it to 15.0 }
+        components.revision?.let { weighted += it to 10.0 }
+        components.macroFit?.let { weighted += it to 10.0 }
 
         var total = weightedAverage(weighted)
         if (i.epsGrowthPct != null && i.epsGrowthPct < -20.0) total -= 8.0
@@ -160,6 +196,7 @@ object HybridStrategyEngine {
         if (i.debtToEquityPct != null && i.debtToEquityPct > 250.0) total -= 6.0
         total = total.coerceIn(0.0, 100.0)
 
+        val coverage = dataCoverage(i, components)
         val totalInt = total.toInt()
         val grade = when {
             totalInt >= 90 -> "S"
@@ -179,107 +216,166 @@ object HybridStrategyEngine {
             else -> 0.0
         }
         var recommended = base * market.riskMultiplier
-        if (market.regime == MarketRegime.PANIC && (quality ?: 0.0) < 75.0) recommended = 0.0
-        recommended = (recommended * 10.0).toInt() / 10.0
+        if (market.regime == MarketRegime.PANIC && (components.quality ?: 0.0) < 75.0) recommended = 0.0
+        if (!coverage.sufficientForRecommendation) recommended = 0.0
+        recommended = floor1(recommended)
 
+        val fit = investorFit(components)
         val action = when {
+            !coverage.sufficientForRecommendation -> "데이터 보강"
             totalInt < 60 -> "제외"
             totalInt < 70 -> "관찰"
             totalInt < 80 -> "관심종목"
             recommended <= 0.0 -> "대기"
             else -> "매수 검토"
         }
-
         return StockAssessment(
-            totalScore = totalInt,
-            grade = grade,
-            components = components,
-            basePositionPct = base,
-            recommendedPositionPct = recommended,
-            action = action,
-            reasons = buildReasons(i, components, market)
+            totalInt, grade, components, coverage, fit, base, recommended, action,
+            buildReasons(i, components, market, coverage)
+        )
+    }
+
+    fun decide(i: DecisionInputs): Decision {
+        val a = i.assessment
+        val rationale = mutableListOf<String>()
+        if (i.thesisState == ThesisState.BROKEN) {
+            return Decision(DecisionAction.SELL, 0.0, listOf("투자논리 훼손"))
+        }
+        if (!a.coverage.sufficientForRecommendation) {
+            return Decision(DecisionAction.WATCH, i.currentPositionPct, listOf("데이터 충족률 부족"))
+        }
+        var target = a.recommendedPositionPct
+        if (i.currentSectorPositionPct >= 25.0) {
+            target = minOf(target, i.currentPositionPct)
+            rationale += "섹터 집중도 25% 이상"
+        }
+        if (i.portfolioDrawdownPct <= -15.0) {
+            target = minOf(target, i.currentPositionPct)
+            rationale += "포트폴리오 낙폭 -15% 이하: 신규 위험 확대 제한"
+        }
+        if (i.thesisState == ThesisState.WEAKENING) {
+            target = minOf(target, i.currentPositionPct * 0.5)
+            rationale += "투자논리 약화"
+        }
+        target = floor1(target.coerceIn(0.0, 7.0))
+
+        val action = when {
+            a.totalScore < 60 && i.currentPositionPct > 0.0 -> DecisionAction.SELL
+            a.totalScore < 60 -> DecisionAction.AVOID
+            target == 0.0 && i.currentPositionPct == 0.0 -> DecisionAction.WATCH
+            target == 0.0 && i.currentPositionPct > 0.0 -> DecisionAction.REDUCE
+            i.currentPositionPct == 0.0 && target > 0.0 -> DecisionAction.BUY
+            target > i.currentPositionPct + 0.3 -> DecisionAction.ADD
+            target < i.currentPositionPct - 0.3 -> DecisionAction.REDUCE
+            else -> DecisionAction.HOLD
+        }
+        if (rationale.isEmpty()) rationale += "점수·시장국면·현재비중 기준"
+        return Decision(action, target, rationale)
+    }
+
+    private fun dataCoverage(i: StockInputs, c: ComponentScores): DataCoverage {
+        val fields = listOf<Any?>(
+            i.roicPct, i.roePct, i.operatingMarginPct, i.freeCashFlowPositiveYears, i.debtToEquityPct,
+            i.revenueGrowthPct, i.epsGrowthPct, i.operatingIncomeGrowthPct, i.forwardEpsGrowthPct,
+            i.pe, i.sectorPe, i.pb, i.evEbitda, i.fcfYieldPct, i.peg,
+            i.return20dPct, i.return60dPct, i.return120dPct, i.relativeStrength60dPct, i.volumeRatio20d,
+            i.distanceFrom52wHighPct, i.epsRevision3mPct, i.estimateUpDownRatio, i.sectorMacroFitScore
+        )
+        val groups = listOf(c.quality, c.growth, c.value, c.momentum, c.revision, c.macroFit)
+        val available = fields.count { it != null }
+        val groupCount = groups.count { it != null }
+        val pct = available * 100 / fields.size
+        return DataCoverage(
+            availableFields = available,
+            totalFields = fields.size,
+            percentage = pct,
+            criticalGroupsAvailable = groupCount,
+            totalCriticalGroups = groups.size,
+            sufficientForRecommendation = pct >= 50 && groupCount >= 4 && c.quality != null && c.momentum != null
+        )
+    }
+
+    private fun investorFit(c: ComponentScores): InvestorFit {
+        fun avg(vararg v: Double?): Int {
+            val values = v.filterNotNull()
+            return if (values.isEmpty()) 0 else values.average().toInt().coerceIn(0, 100)
+        }
+        return InvestorFit(
+            buffett = avg(c.quality, c.quality, c.growth),
+            graham = avg(c.value, c.value, c.quality),
+            lynch = avg(c.growth, c.value, c.revision),
+            sorosMomentum = avg(c.momentum, c.momentum, c.revision),
+            druckenmiller = avg(c.momentum, c.growth, c.revision, c.macroFit)
         )
     }
 
     private fun qualityScore(i: StockInputs): Double? {
-        val parts = mutableListOf<Double>()
-        i.roicPct?.let { parts += scale(it, 0.0, 20.0) }
-        i.roePct?.let { parts += scale(it, 0.0, 25.0) }
-        i.operatingMarginPct?.let { parts += scale(it, 0.0, 25.0) }
-        i.freeCashFlowPositiveYears?.let { parts += scale(it.toDouble(), 0.0, 5.0) }
-        i.debtToEquityPct?.let { parts += inverseScale(it, 30.0, 250.0) }
-        return averageOrNull(parts)
+        val p = mutableListOf<Double>()
+        i.roicPct?.let { p += scale(it, 0.0, 20.0) }
+        i.roePct?.let { p += scale(it, 0.0, 25.0) }
+        i.operatingMarginPct?.let { p += scale(it, 0.0, 25.0) }
+        i.freeCashFlowPositiveYears?.let { p += scale(it.toDouble(), 0.0, 5.0) }
+        i.debtToEquityPct?.let { p += inverseScale(it, 30.0, 250.0) }
+        return averageOrNull(p)
     }
 
     private fun growthScore(i: StockInputs): Double? {
-        val parts = mutableListOf<Double>()
-        i.revenueGrowthPct?.let { parts += scale(it, -10.0, 30.0) }
-        i.epsGrowthPct?.let { parts += scale(it, -15.0, 35.0) }
-        i.operatingIncomeGrowthPct?.let { parts += scale(it, -15.0, 35.0) }
-        i.forwardEpsGrowthPct?.let { parts += scale(it, -10.0, 30.0) }
-        return averageOrNull(parts)
+        val p = mutableListOf<Double>()
+        i.revenueGrowthPct?.let { p += scale(it, -10.0, 30.0) }
+        i.epsGrowthPct?.let { p += scale(it, -15.0, 35.0) }
+        i.operatingIncomeGrowthPct?.let { p += scale(it, -15.0, 35.0) }
+        i.forwardEpsGrowthPct?.let { p += scale(it, -10.0, 30.0) }
+        return averageOrNull(p)
     }
 
     private fun valueScore(i: StockInputs): Double? {
-        val parts = mutableListOf<Double>()
-        if (i.pe != null && i.sectorPe != null && i.pe > 0.0 && i.sectorPe > 0.0) {
-            parts += inverseScale(i.pe / i.sectorPe, 0.6, 1.6)
-        }
-        i.pb?.let { if (it > 0) parts += inverseScale(it, 0.7, 5.0) }
-        i.evEbitda?.let { if (it > 0) parts += inverseScale(it, 5.0, 25.0) }
-        i.fcfYieldPct?.let { parts += scale(it, 0.0, 10.0) }
-        i.peg?.let { if (it > 0) parts += inverseScale(it, 0.5, 2.5) }
-        return averageOrNull(parts)
+        val p = mutableListOf<Double>()
+        if (i.pe != null && i.sectorPe != null && i.pe > 0 && i.sectorPe > 0) p += inverseScale(i.pe / i.sectorPe, 0.6, 1.6)
+        i.pb?.let { if (it > 0) p += inverseScale(it, 0.7, 5.0) }
+        i.evEbitda?.let { if (it > 0) p += inverseScale(it, 5.0, 25.0) }
+        i.fcfYieldPct?.let { p += scale(it, 0.0, 10.0) }
+        i.peg?.let { if (it > 0) p += inverseScale(it, 0.5, 2.5) }
+        return averageOrNull(p)
     }
 
     private fun momentumScore(i: StockInputs): Double? {
-        val parts = mutableListOf<Double>()
-        i.return20dPct?.let { parts += scale(it, -15.0, 20.0) }
-        i.return60dPct?.let { parts += scale(it, -20.0, 35.0) }
-        i.return120dPct?.let { parts += scale(it, -25.0, 50.0) }
-        i.relativeStrength60dPct?.let { parts += scale(it, -15.0, 20.0) }
-        i.volumeRatio20d?.let { parts += scale(it, 0.5, 2.0) }
-        i.distanceFrom52wHighPct?.let { parts += scale(it, -40.0, 0.0) }
-        return averageOrNull(parts)
+        val p = mutableListOf<Double>()
+        i.return20dPct?.let { p += scale(it, -15.0, 20.0) }
+        i.return60dPct?.let { p += scale(it, -20.0, 35.0) }
+        i.return120dPct?.let { p += scale(it, -25.0, 50.0) }
+        i.relativeStrength60dPct?.let { p += scale(it, -15.0, 20.0) }
+        i.volumeRatio20d?.let { p += scale(it, 0.5, 2.0) }
+        i.distanceFrom52wHighPct?.let { p += scale(it, -40.0, 0.0) }
+        return averageOrNull(p)
     }
 
     private fun revisionScore(i: StockInputs): Double? {
-        val parts = mutableListOf<Double>()
-        i.epsRevision3mPct?.let { parts += scale(it, -20.0, 20.0) }
-        i.estimateUpDownRatio?.let { parts += scale(it, 0.5, 2.0) }
-        return averageOrNull(parts)
+        val p = mutableListOf<Double>()
+        i.epsRevision3mPct?.let { p += scale(it, -20.0, 20.0) }
+        i.estimateUpDownRatio?.let { p += scale(it, 0.5, 2.0) }
+        return averageOrNull(p)
     }
 
-    private fun buildReasons(i: StockInputs, c: ComponentScores, market: MarketAssessment): List<String> {
-        val reasons = mutableListOf<String>()
-        fun hi(name: String, score: Double?) { if (score != null && score >= 75) reasons += "$name 강점" }
-        fun lo(name: String, score: Double?) { if (score != null && score < 40) reasons += "$name 약점" }
-        hi("퀄리티", c.quality); hi("성장", c.growth); hi("가치", c.value)
-        hi("모멘텀", c.momentum); hi("실적추정", c.revision); hi("매크로 적합도", c.macroFit)
-        lo("퀄리티", c.quality); lo("성장", c.growth); lo("가치", c.value)
-        lo("모멘텀", c.momentum); lo("실적추정", c.revision)
-        if ((i.epsRevision3mPct ?: 0.0) < -15.0) reasons += "EPS 추정치 급격한 하향"
-        if ((i.debtToEquityPct ?: 0.0) > 250.0) reasons += "과도한 부채"
-        reasons += "시장 ${market.score}점 · ${market.summary}"
-        return reasons.take(5)
+    private fun buildReasons(i: StockInputs, c: ComponentScores, market: MarketAssessment, coverage: DataCoverage): List<String> {
+        val r = mutableListOf<String>()
+        fun hi(name: String, score: Double?) { if (score != null && score >= 75) r += "$name 강점" }
+        fun lo(name: String, score: Double?) { if (score != null && score < 40) r += "$name 약점" }
+        hi("퀄리티", c.quality); hi("성장", c.growth); hi("가치", c.value); hi("모멘텀", c.momentum); hi("실적추정", c.revision)
+        lo("퀄리티", c.quality); lo("성장", c.growth); lo("가치", c.value); lo("모멘텀", c.momentum); lo("실적추정", c.revision)
+        if ((i.epsRevision3mPct ?: 0.0) < -15.0) r += "EPS 추정치 급격한 하향"
+        if ((i.debtToEquityPct ?: 0.0) > 250.0) r += "과도한 부채"
+        if (!coverage.sufficientForRecommendation) r += "데이터 충족률 ${coverage.percentage}% · 자동추천 보류"
+        r += "시장 ${market.score}점 · ${market.summary}"
+        return r.take(6)
     }
 
-    private fun weightedAverage(values: List<Pair<Double, Double>>): Double {
-        if (values.isEmpty()) return 50.0
-        val weight = values.sumOf { it.second }
-        return values.sumOf { it.first * it.second } / weight
+    private fun weightedAverage(v: List<Pair<Double, Double>>): Double {
+        if (v.isEmpty()) return 50.0
+        val w = v.sumOf { it.second }
+        return v.sumOf { it.first * it.second } / w
     }
-
-    private fun averageOrNull(values: List<Double>): Double? =
-        if (values.isEmpty()) null else values.average().coerceIn(0.0, 100.0)
-
-    private fun scale(value: Double, low: Double, high: Double): Double {
-        if (high <= low) return 50.0
-        return ((value - low) / (high - low) * 100.0).coerceIn(0.0, 100.0)
-    }
-
-    private fun inverseScale(value: Double, best: Double, worst: Double): Double {
-        if (worst <= best) return 50.0
-        return (100.0 - ((value - best) / (worst - best) * 100.0)).coerceIn(0.0, 100.0)
-    }
+    private fun averageOrNull(v: List<Double>): Double? = if (v.isEmpty()) null else v.average().coerceIn(0.0, 100.0)
+    private fun scale(value: Double, low: Double, high: Double): Double = if (high <= low) 50.0 else ((value - low) / (high - low) * 100.0).coerceIn(0.0, 100.0)
+    private fun inverseScale(value: Double, best: Double, worst: Double): Double = if (worst <= best) 50.0 else (100.0 - ((value - best) / (worst - best) * 100.0)).coerceIn(0.0, 100.0)
+    private fun floor1(value: Double): Double = kotlin.math.floor(value * 10.0) / 10.0
 }
