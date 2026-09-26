@@ -14,7 +14,7 @@ dependencies {
 kotlin {
     jvmToolchain(17)
     sourceSets.main {
-        kotlin.srcDir("core")
+        kotlin.srcDirs("core", "data")
     }
     sourceSets.test {
         kotlin.srcDir("tests")
