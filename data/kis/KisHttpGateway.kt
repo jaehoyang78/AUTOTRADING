@@ -21,8 +21,9 @@ import java.time.format.DateTimeFormatter
  * - KR daily stock history
  * - US daily stock close history
  * - KOSPI/KOSDAQ daily index history
+ * - S&P 500 daily index history (official KIS overseas-index code SPX)
  *
- * U.S. index and volatility endpoints remain unimplemented until their exact KIS mappings are verified.
+ * Nasdaq Composite and volatility endpoints remain fail-closed until their exact KIS mappings are verified.
  */
 class KisHttpGateway(
     private val credentials: KisCredentials,
@@ -110,13 +111,16 @@ class KisHttpGateway(
 
     override fun indexBars(index: MarketIndex, limit: Int): List<KisIndexBarDto> {
         require(limit > 0) { "limit must be positive" }
-        val indexCode = when (index) {
-            MarketIndex.KOSPI -> "0001"
-            MarketIndex.KOSDAQ -> "1001"
-            MarketIndex.SP500, MarketIndex.NASDAQ_COMPOSITE ->
-                throw UnsupportedOperationException("KIS U.S. index mapping not verified yet: $index")
+        return when (index) {
+            MarketIndex.KOSPI -> domesticIndexBars("0001", limit)
+            MarketIndex.KOSDAQ -> domesticIndexBars("1001", limit)
+            MarketIndex.SP500 -> overseasIndexBars("SPX", limit)
+            MarketIndex.NASDAQ_COMPOSITE ->
+                throw UnsupportedOperationException("KIS Nasdaq Composite index code not verified yet")
         }
+    }
 
+    private fun domesticIndexBars(indexCode: String, limit: Int): List<KisIndexBarDto> {
         val today = LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul")))
         val startDate = today.minusDays((limit * 2L).coerceAtLeast(35L))
         val start = startDate.format(DateTimeFormatter.BASIC_ISO_DATE)
@@ -134,15 +138,14 @@ class KisHttpGateway(
                 query
             )
             val raw = root.optJSONArray("output2") ?: return@repeat
-            var earliest: LocalDate? = null
-            for (i in 0 until raw.length()) {
-                val item = raw.optJSONObject(i) ?: continue
-                val date = parseBasicDate(item.optString("stck_bsop_date")) ?: continue
-                val close = nullableDouble(item, "bstp_nmix_prpr")
-                    ?.takeIf { it > 0.0 } ?: continue
-                byDate[date] = KisIndexBarDto(date, close, observedAt)
-                if (earliest == null || date.isBefore(earliest)) earliest = date
-            }
+            val earliest = parseIndexRows(
+                rawLength = raw.length(),
+                rowAt = { raw.optJSONObject(it) },
+                dateField = "stck_bsop_date",
+                closeField = "bstp_nmix_prpr",
+                observedAt = observedAt,
+                byDate = byDate
+            )
 
             if (byDate.size >= limit) return byDate.values.sortedBy { it.date }.takeLast(limit)
             val first = earliest ?: return byDate.values.sortedBy { it.date }.takeLast(limit)
@@ -152,6 +155,62 @@ class KisHttpGateway(
             cursor = nextCursor
         }
         return byDate.values.sortedBy { it.date }.takeLast(limit)
+    }
+
+    private fun overseasIndexBars(indexCode: String, limit: Int): List<KisIndexBarDto> {
+        val today = LocalDate.now(clock.withZone(ZoneId.of("America/New_York")))
+        val startDate = today.minusDays((limit * 2L).coerceAtLeast(35L))
+        val start = startDate.format(DateTimeFormatter.BASIC_ISO_DATE)
+        var cursor = today
+        val observedAt = clock.instant()
+        val byDate = linkedMapOf<LocalDate, KisIndexBarDto>()
+
+        repeat(10) {
+            val end = cursor.format(DateTimeFormatter.BASIC_ISO_DATE)
+            val query = "FID_COND_MRKT_DIV_CODE=N&FID_INPUT_ISCD=${enc(indexCode)}" +
+                "&FID_INPUT_DATE_1=$start&FID_INPUT_DATE_2=$end&FID_PERIOD_DIV_CODE=D"
+            val root = request(
+                "/uapi/overseas-price/v1/quotations/inquire-daily-chartprice",
+                "FHKST03030100",
+                query
+            )
+            val raw = root.optJSONArray("output2") ?: return@repeat
+            val earliest = parseIndexRows(
+                rawLength = raw.length(),
+                rowAt = { raw.optJSONObject(it) },
+                dateField = "stck_bsop_date",
+                closeField = "ovrs_nmix_prpr",
+                observedAt = observedAt,
+                byDate = byDate
+            )
+
+            if (byDate.size >= limit) return byDate.values.sortedBy { it.date }.takeLast(limit)
+            val first = earliest ?: return byDate.values.sortedBy { it.date }.takeLast(limit)
+            if (!first.isAfter(startDate)) return byDate.values.sortedBy { it.date }.takeLast(limit)
+            val nextCursor = first.minusDays(1)
+            if (!nextCursor.isBefore(cursor)) return byDate.values.sortedBy { it.date }.takeLast(limit)
+            cursor = nextCursor
+        }
+        return byDate.values.sortedBy { it.date }.takeLast(limit)
+    }
+
+    private fun parseIndexRows(
+        rawLength: Int,
+        rowAt: (Int) -> JSONObject?,
+        dateField: String,
+        closeField: String,
+        observedAt: Instant,
+        byDate: MutableMap<LocalDate, KisIndexBarDto>
+    ): LocalDate? {
+        var earliest: LocalDate? = null
+        for (i in 0 until rawLength) {
+            val item = rowAt(i) ?: continue
+            val date = parseBasicDate(item.optString(dateField)) ?: continue
+            val close = nullableDouble(item, closeField)?.takeIf { it > 0.0 } ?: continue
+            byDate[date] = KisIndexBarDto(date, close, observedAt)
+            if (earliest == null || date.isBefore(earliest)) earliest = date
+        }
+        return earliest
     }
 
     override fun volatility(index: VolatilityIndex, limit: Int): List<KisVolatilityDto> =
