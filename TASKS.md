@@ -65,6 +65,7 @@
 - [x] POST support for OAuth
 - [x] Venue model: KRX / NASDAQ / NYSE / AMEX
 - [x] Macro feature 계산 및 Market Regime 반영
+- [x] 수동 live credential smoke-test 실행 경로 (`Live Credential Smoke` workflow)
 
 ### 한국
 - [x] KIS live HTTP/OAuth market-data gateway
@@ -72,7 +73,7 @@
 - [x] 국내 종목 현재가 연결 코드
 - [x] 국내 종목 일봉 연결 코드
 - [x] 국내 일봉 거래량 파싱
-- [ ] 실제 KIS credential smoke test
+- [ ] 실제 KIS credential smoke test 성공 확인
 - [ ] VKOSPI
 - [ ] Market breadth
 - [ ] 재무
@@ -86,7 +87,7 @@
 - [x] 미국 종목 현재가 연결 코드
 - [x] 미국 종목 일봉 종가 연결 코드
 - [ ] 미국 일봉 거래량/OHLC 추가 검증
-- [ ] 실제 KIS credential smoke test
+- [ ] 실제 KIS credential smoke test 성공 확인
 - [ ] VIX
 - [ ] Market breadth
 - [ ] 재무
@@ -102,7 +103,7 @@
 - [x] 유동성 proxy series config: WALCL
 - [x] credit spread series config: BAMLH0A0HYM2
 - [x] macro feature 계산 및 Market Regime 반영
-- [ ] 실제 FRED credential smoke test
+- [ ] 실제 FRED credential smoke test 성공 확인
 
 ## P4 — Backtest
 - [ ] Historical snapshot schema
@@ -150,7 +151,7 @@
 - [ ] timeout no-retry rule
 
 ## 다음 최우선 작업
-1. KIS/FRED 실제 credential smoke-test 실행 경로
+1. GitHub Secrets 구성 후 KIS/FRED live smoke 성공 확인
 2. S&P500/Nasdaq 공식 지수 mapping 추가 조사
 3. VIX/VKOSPI + market breadth
 4. 미국 일봉 거래량/OHLC 추가 검증
