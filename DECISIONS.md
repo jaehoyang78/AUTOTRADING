@@ -179,3 +179,17 @@ KIS 해외 시세는 거래소 코드가 필요하므로 `Venue`를 KRX/NASDAQ/N
 S&P500/Nasdaq Composite는 같은 수준의 공식 매핑을 아직 확인하지 못했으므로 `UnsupportedOperationException`으로 fail-closed 상태를 유지한다. 지수명을 임의 ETF나 종목 심볼로 대체하지 않는다.
 
 이유: Market Regime의 20/60/200일 추세가 잘못된 지수 데이터에 의해 왜곡되는 위험을 막기 위함이다.
+
+## D-031 — 실 credential 검증은 수동·읽기전용 smoke workflow로만 수행한다
+결정:
+- GitHub Actions `Live Credential Smoke`는 `workflow_dispatch` 전용으로 둔다.
+- KIS/FRED 키는 Repository Secrets 또는 로컬 환경변수에서만 주입한다.
+- KIS smoke는 OAuth → 삼성전자 현재가 → KOSPI 5일봉 조회만 수행한다.
+- FRED smoke는 DFF 최근 observation 조회만 수행한다.
+- smoke 코드에는 계좌번호·주문 함수·주문 endpoint를 포함하지 않는다.
+
+상태 관리:
+- smoke 실행 경로를 구현한 것과 실제 credential로 성공한 것은 별개 체크박스로 기록한다.
+- Secrets가 설정되지 않았거나 실제 실행이 성공하지 않았으면 live verification 완료로 표시하지 않는다.
+
+이유: 실서비스 연결을 검증하면서도 credential 노출과 의도치 않은 주문 위험을 최소화하기 위함이다.
