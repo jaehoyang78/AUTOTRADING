@@ -49,6 +49,7 @@
 - [x] KOSPI/KOSDAQ index mapping tests
 - [x] S&P500 overseas-index mapping tests
 - [x] Historical point-in-time snapshot validation tests
+- [x] Snapshot append-only / integrity hash tests
 
 ## P3 — 데이터 연결
 ### 기반
@@ -110,7 +111,8 @@
 
 ## P4 — Backtest
 - [x] Historical snapshot schema v1 (asOf / availableAt / source / revision / universe membership)
-- [ ] Snapshot persistence (append-only + integrity hash)
+- [x] SnapshotStore contract + in-memory append-only implementation + SHA-256 integrity hash
+- [ ] Durable snapshot persistence (SQLite/DuckDB/Parquet 비교 후 선택)
 - [ ] Benchmark 정의
 - [ ] Buffett portfolio
 - [ ] Graham portfolio
@@ -157,8 +159,8 @@
 ## 다음 최우선 작업
 1. GitHub Secrets 구성 후 KIS/FRED live smoke 성공 확인
 2. Nasdaq Composite 공식 KIS master 코드 확정
-3. VIX/VKOSPI + market breadth
-4. Snapshot persistence + benchmark/backtest runner
+3. Durable snapshot persistence + benchmark/backtest runner
+4. VIX/VKOSPI + market breadth
 5. 미국 일봉 거래량/OHLC 추가 검증
 
 ## 재개용 한 줄 지시
