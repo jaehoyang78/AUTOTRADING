@@ -57,12 +57,36 @@
 - HTTP 오류/업무 오류 메시지에 credential을 포함하지 않는다.
 - 실계좌 주문 모듈과 시세 gateway는 독립 유지한다.
 
+## 2026-09-26 Macro Regime Integration v1
+작업 브랜치: `feature/data-layer-v1`
+
+### 추가
+- `MacroFeatureCalculator`
+  - 정책금리 6개월 변화
+  - 10Y-2Y yield curve
+  - CPI YoY 및 3개월 방향
+  - Fed total assets 13주 변화
+  - KR용 USD/KRW 3개월 변화
+  - High Yield OAS 기반 credit stress
+- 누락 데이터는 0점 처리하지 않고 사용 가능한 macro component만 재정규화
+- KR/US macro coverage 계산
+- `MacroRegimeOverlay`
+  - 기존 Market Regime 점수 85% + Macro Tailwind 15%
+  - macro가 없으면 기존 MarketAssessment를 그대로 유지
+- `MarketRegimeComposer`
+  - Price trend + supplementary breadth/volatility + credit stress + macro overlay를 한 경로로 조립
+- favorable/adverse/missing macro 단위테스트 추가
+
+### 설계 의도
+기존 Market Regime 엔진을 직접 크게 변경하지 않고 매크로를 독립 overlay로 둔다. 매크로 산식은 향후 백테스트에서 교체/조정하기 쉽고, 데이터 누락 시 기존 엔진이 그대로 작동한다.
+
 ## 다음 작업
-1. macro feature calculator → Market Regime 보조입력 생성
-2. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping 검증
-3. 실제 KIS/FRED credential smoke-test 실행 경로
-4. VIX/VKOSPI + market breadth
+1. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping 검증
+2. 실제 KIS/FRED credential smoke-test 실행 경로
+3. VIX/VKOSPI + market breadth
+4. 미국 일봉 거래량/OHLC 추가 검증
 5. 재무/밸류에이션 데이터 공급자 연결
+6. Historical snapshot schema / Backtest 시작
 
 ## 운영 원칙
 - Chat: 요구사항·설계·작업분해·검수
