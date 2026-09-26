@@ -1,167 +1,36 @@
 # Tasks — AUTOTRADING
 
-프로젝트 재개 시 이 파일의 가장 높은 우선순위 미완료 항목부터 진행한다.
+현재 목표는 **실제 한국·미국 종목을 평가하고 추천을 보여주는 v1**이다. 아래 v1 항목을 순서대로 작은 PR로 진행한다. v2+ 항목은 기록만 유지하며 v1 완료 조건에 넣지 않는다.
 
-## P0 — 저장소/운영 기반
-- [x] AUTOTRADING 신규 저장소 생성
-- [x] canonical repository 확정
-- [x] README / STATUS / DECISIONS / ARCHITECTURE / ROADMAP / TASKS 구성
-- [x] 전략 상세문서 이전
-- [x] 엔진 v1 이전
-- [x] 기본 CI 생성
-- [x] PR/브랜치 운영 규칙 문서화
+## v1 — 지금 필요한 작업
 
-## P1 — Core Engine
-- [x] Market assessment prototype
-- [x] Component scoring prototype
-- [x] Total score / grade
-- [x] Market risk multiplier
-- [x] Basic risk penalty
-- [x] Data coverage score
-- [x] Investor fit score
-- [x] Thesis state model
-- [x] Buy/Add/Hold/Reduce/Sell decision rules
-- [x] Portfolio equity exposure rule v1
-- [x] Sector concentration rule v1 (25% 이상 증액 제한)
-- [x] Cash target rules v1
-- [x] Portfolio drawdown risk gate v1 (-15% 이하 증액 제한)
+1. [ ] **재무·밸류에이션 공급자 설계와 구현 — 최우선**: KR/US 지원 범위와 접근 조건을 확인하고, 공통 모델·provider·정규화 경계를 구현한다. 매출/EPS 성장률, ROE/ROIC, PER/PBR, 부채비율, FCF를 우선 연결하고 출처·기준시점·결측을 보존한다. fixture 기반 테스트와 CI를 통과한다.
+2. [ ] 전략 엔진 입력 정리: 재무·가격·거시 입력을 기존 100점 계산에 연결한다. 누락 항목은 임의 값으로 채우지 않으며 기존 Coverage/위험 가드를 유지한다. 신뢰할 수 있는 EPS Revision이 없으면 missing으로 둔다.
+3. [ ] 실제 시세·거시 연결 검증: 기존 KIS KR/US 시세, KOSPI/KOSDAQ/S&P500, FRED 경로를 확인한다. 실제 credential smoke 성공을 별도로 기록하고, 키가 없으면 미검증 상태를 명시한다.
+4. [ ] 한국·미국 각각 20~50개 실제 종목 평가: 재현 가능한 종목 목록으로 가격·재무 입력을 결합하고 점수, 등급, 판단, 추천비중, 이유·위험, Coverage를 생성한다.
+5. [ ] 추천 TOP 10: 데이터·위험 기준을 통과한 후보를 순위화한다. 적격 후보가 10개 미만이면 그 수만 표시하며 데이터 부족 종목을 추천으로 채우지 않는다.
+6. [ ] 최소 UI 3개 화면: 오늘 시장상태, 추천 TOP 10, 종목 상세점수. 데이터 기준시점·미확보 항목과 추천 이유·위험을 함께 보여준다.
+7. [ ] 간단한 검증과 v1 완료 확인: 핵심 계산/정규화/결측 테스트, 샘플 종목 수동 대조, 추천 생성 smoke, CI를 통과한다. 네트워크 없는 테스트와 실제 데이터 연결 결과를 구분한다.
 
-## P2 — 테스트
-- [x] Market regime unit tests
-- [x] Quality score boundary tests
-- [x] Growth score boundary tests
-- [x] Value score boundary tests
-- [x] Momentum score boundary tests
-- [x] Revision score boundary tests
-- [x] Position sizing/decision smoke tests
-- [x] Missing-data tests
-- [x] Extreme-value tests
-- [x] Panic regime tests
-- [x] Broken-thesis SELL test
-- [x] Sector-concentration risk test
-- [x] Portfolio cash/exposure tests
-- [x] Price feature calculator tests
-- [x] Market input assembly tests
-- [x] Provider adapter normalization tests
-- [x] FRED HTTP parser/error tests
-- [x] KIS OAuth/quote/daily/venue/error tests
-- [x] Macro feature / regime overlay tests
-- [x] KOSPI/KOSDAQ index mapping tests
-- [x] S&P500 overseas-index mapping tests
-- [x] Historical point-in-time snapshot validation tests
-- [x] Snapshot append-only / integrity hash tests
+v1에는 주문·broker 구현, 모의매매, 스케줄러·알림을 추가하지 않는다. KIS는 읽기전용 시세 공급자로 사용한다. v1 추천 결과를 투자성과가 검증된 전략으로 표현하지 않는다.
 
-## P3 — 데이터 연결
-### 기반
-- [x] 데이터 공급자 비교/우선순위 문서 v1
-- [x] Provider-agnostic Quote/DailyBar/Index/Volatility/Macro 모델
-- [x] MarketDataProvider 인터페이스
-- [x] MacroDataProvider 인터페이스
-- [x] DailyBar → 20/60/120일 수익률 계산
-- [x] IndexBar → 20/60/200일 추세 계산
-- [x] 52주 고점 대비 거리/낙폭 계산
-- [x] 20일 거래량 비율 계산
-- [x] normalized feature → MarketInputs assembly
-- [x] KIS gateway/adapter skeleton
-- [x] FRED gateway/adapter skeleton
-- [x] injectable JDK HTTP transport
-- [x] POST support for OAuth
-- [x] Venue model: KRX / NASDAQ / NYSE / AMEX
-- [x] Macro feature 계산 및 Market Regime 반영
-- [x] 수동 live credential smoke-test 실행 경로 (`Live Credential Smoke` workflow)
+## v2+ — 나중에 순차 진행
 
-### 한국
-- [x] KIS live HTTP/OAuth market-data gateway
-- [x] KOSPI/KOSDAQ 지수 mapping (KOSPI=0001, KOSDAQ=1001, FHKUP03500100)
-- [x] 국내 종목 현재가 연결 코드
-- [x] 국내 종목 일봉 연결 코드
-- [x] 국내 일봉 거래량 파싱
-- [ ] 실제 KIS credential smoke test 성공 확인
-- [ ] VKOSPI
-- [ ] Market breadth
-- [ ] 재무
-- [ ] 밸류에이션
-- [ ] 컨센서스/EPS Revision
+- 시장 데이터 확장: VIX/VKOSPI, market breadth 고도화, Nasdaq Composite 공식 코드, 미국 일봉 OHLC/거래량 추가 검증, 신뢰 가능한 컨센서스/EPS Revision 공급자.
+- 심화 검증: durable snapshot 저장소(SQLite/DuckDB/Parquet 등), deterministic replay 확장, 벤치마크·체결·비용/슬리피지 모델, walk-forward, 성과 리포트.
+- 전략 비교·포트폴리오: Buffett/Graham/Lynch/Momentum/Hybrid 가상포트폴리오, 실제 보유종목 관리, Strategy Lab, 검증에 따른 가중치 조정.
+- 자동화: 장 시작 30분 후/마감 30분 전 스캔, 추천·점수·thesis·EPS Revision 변화 감지, 리밸런싱 알림, 서버·푸시.
+- 매매: paper trading 이후 사용자 승인형 KIS 실주문. 별도 broker 모듈, Paper/Live 분리, 보안저장소, fresh quote, 중복주문 방지, audit log, timeout 재주문 금지를 함께 검증한다.
 
-### 미국
-- [x] KIS US live HTTP market-data gateway
-- [x] 미국 거래소/venue 식별 규칙
-- [x] S&P500 공식 해외지수 API mapping (`SPX`, `FHKST03030100`)
-- [ ] Nasdaq Composite 지수 코드 — 공식 KIS master에서 확정 전 fail-closed
-- [x] 미국 종목 현재가 연결 코드
-- [x] 미국 종목 일봉 종가 연결 코드
-- [ ] 미국 일봉 거래량/OHLC 추가 검증
-- [ ] 실제 KIS credential smoke test 성공 확인
-- [ ] VIX
-- [ ] Market breadth
-- [ ] 재무
-- [ ] 밸류에이션
-- [ ] EPS Revision
+## 이미 확보한 기반
 
-### Macro
-- [x] FRED live HTTP gateway
-- [x] 정책금리 series config: DFF
-- [x] 국채금리 series config: DGS2 / DGS10
-- [x] 인플레이션 series config: CPIAUCSL
-- [x] 달러/환율 series config: DEXKOUS
-- [x] 유동성 proxy series config: WALCL
-- [x] credit spread series config: BAMLH0A0HYM2
-- [x] macro feature 계산 및 Market Regime 반영
-- [ ] 실제 FRED credential smoke test 성공 확인
+- Market Regime, 100점 Stock Score, Investor Fit, Thesis/Decision, Coverage, 비중·현금·집중도·낙폭 가드와 단위테스트.
+- 공통 시세·지수·거시 모델, 가격 feature, KIS/FRED gateway·adapter, Macro overlay, 공식 KOSPI/KOSDAQ/S&P500 매핑.
+- GitHub Actions CI와 수동 읽기전용 live smoke 경로. **실제 KIS/FRED credential 성공은 미확인**이다.
+- Historical snapshot의 point-in-time 검증, in-memory append-only store와 SHA-256 테스트. 기존 구현은 보존하며 추가 저장소/백테스트 개발은 v2+로 미룬다.
 
-## P4 — Backtest
-- [x] Historical snapshot schema v1 (asOf / availableAt / source / revision / universe membership)
-- [x] SnapshotStore contract + in-memory append-only implementation + SHA-256 integrity hash
-- [ ] Durable snapshot persistence (SQLite/DuckDB/Parquet 비교 후 선택)
-- [ ] Benchmark 정의
-- [ ] Buffett portfolio
-- [ ] Graham portfolio
-- [ ] Lynch portfolio
-- [ ] Momentum portfolio
-- [ ] Hybrid portfolio
-- [ ] Transaction cost
-- [ ] Slippage
-- [ ] Walk-forward
-- [ ] CAGR/MDD/Sharpe/Sortino/Turnover report
+상세 현황은 [PROJECT_STATUS.md](PROJECT_STATUS.md), 단계별 완료 조건은 [ROADMAP.md](ROADMAP.md)를 따른다.
 
-## P5 — UI
-- [ ] Dashboard
-- [ ] Market Regime card
-- [ ] Scanner
-- [ ] Score breakdown
-- [ ] Data coverage
-- [ ] Stock Detail
-- [ ] Investor fit chart
-- [ ] Thesis/risk
-- [ ] Portfolio
-- [ ] Strategy Lab
+## 재개 순서
 
-## P6 — 자동화
-- [ ] 장 시작 30분 후 스캔
-- [ ] 장 마감 30분 전 스캔
-- [ ] 추천 변경 감지
-- [ ] 보유종목 score 급락 감지
-- [ ] EPS revision 급변 감지
-- [ ] 리밸런싱 알림
-- [ ] 서버/푸시 구조
-
-## P7 — Broker
-- [ ] KIS broker adapter
-- [ ] paper/simulation mode
-- [ ] live mode 분리
-- [ ] 계좌/키 secure storage
-- [ ] fresh quote before order
-- [ ] user approval
-- [ ] duplicate-order guard
-- [ ] audit log
-- [ ] timeout no-retry rule
-
-## 다음 최우선 작업
-1. GitHub Secrets 구성 후 KIS/FRED live smoke 성공 확인
-2. Nasdaq Composite 공식 KIS master 코드 확정
-3. Durable snapshot persistence + benchmark/backtest runner
-4. VIX/VKOSPI + market breadth
-5. 미국 일봉 거래량/OHLC 추가 검증
-
-## 재개용 한 줄 지시
-> `jaehoyang78/AUTOTRADING`의 README.md, PROJECT_STATUS.md, DECISIONS.md, ARCHITECTURE.md, ROADMAP.md, TASKS.md를 먼저 읽고 TASKS.md의 가장 높은 우선순위 미완료 항목부터 이어서 진행해. 중요한 결정 변경 시 DECISIONS.md와 PROJECT_STATUS.md도 함께 갱신해.
+`README.md` → `PROJECT_STATUS.md` → `DECISIONS.md` → `ARCHITECTURE.md` → `ROADMAP.md` → `TASKS.md` → 최근 PR/CI를 읽고, v1의 가장 높은 미완료 항목부터 이어간다. 한 PR에는 하나의 검토 가능한 목적만 담는다.

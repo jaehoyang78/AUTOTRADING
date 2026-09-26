@@ -1,108 +1,45 @@
 # Project Status — AUTOTRADING
 
-## Canonical Repository
-`jaehoyang78/AUTOTRADING`
+Canonical repository: `jaehoyang78/AUTOTRADING`
 
-## main 기준 완료
-- PR #1 Core Engine v2
-- PR #2 Data Foundation v1
-- PR #3 Provider Adapters v1
-- PR #4 FRED Live Data Gateway v1
-- PR #7 Macro Regime Integration v1
-- PR #8 Verified KOSPI/KOSDAQ Index Mapping v1
-- PR #9 Secure read-only live credential smoke workflow
-- PR #10 Verified KIS S&P500 daily index mapping
+## 현재 목표 — 추천 앱 v1
 
-핵심 완료 기능:
-- Market Regime / 100점 Stock Score / Data Coverage
-- Investor Fit / Thesis & Decision Engine
-- 종목·섹터·포트폴리오 위험 가드와 Cash Target
-- 공통 Quote/DailyBar/Index/Volatility/Macro 모델
-- PriceFeatureCalculator / MarketInputFactory
-- KIS/FRED gateway 경계와 정규화 provider adapter
-- FRED live HTTP gateway
-- MacroFeatureCalculator / MacroRegimeOverlay / MarketRegimeComposer
-- KOSPI/KOSDAQ/S&P500 verified KIS index history
-- secret-backed manual read-only live smoke workflow
-- GitHub Actions CI 및 단위테스트
+2026-09-27 기준 범위를 **실제 종목 추천에 필요한 기능**으로 좁혔다. 최우선 작업은 재무·밸류에이션 공급자 설계와 구현이다. 이후 기존 엔진 입력 정리, 실제 데이터 연결 검증, 한국·미국 각각 20~50개 종목 점수화, TOP 10, 최소 UI와 간단한 검증을 순차 진행한다.
 
-## 2026-09-26 Live Data / Index 상태
-### KIS
-- KR/US 현재가
-- KR 일봉 OHLC/거래량
-- US 일봉 종가
-- KOSPI `0001`, KOSDAQ `1001`
-- S&P500 해외지수 `SPX`
-- Nasdaq Composite는 공식 KIS master symbol 확정 전 fail-closed
-- VIX/VKOSPI는 공식/허용 가능한 공급자 검증 전 미지원
+v1은 아직 완료되지 않았다. 재무 연결·추천 목록·UI가 남아 있으며 실제 KIS/FRED credential 성공도 확인되지 않았다. v1에는 주문/broker 코드, paper trading, 스케줄러·알림을 추가하지 않는다.
 
-### FRED / Macro
-- DFF, DGS2, DGS10, CPIAUCSL, DEXKOUS, WALCL, BAMLH0A0HYM2
-- 정책금리, yield curve, CPI, 유동성, FX, HY OAS를 Macro Tailwind/Credit Stress로 정규화
-- base Market Regime 85% + Macro 15%
+## 확보한 구현과 테스트
 
-### Live credential smoke
-- 수동 `Live Credential Smoke` workflow 구현 완료
-- KIS/FRED 실제 credential 성공 확인은 아직 미완료
-- credential은 GitHub Secrets/환경변수에서만 사용
+| 영역 | 현재 구현 |
+|---|---|
+| 전략 엔진 | 5단계 Market Regime, 100점 Stock Score, Data Coverage, Investor Fit, Thesis/Decision, 추천비중·현금·집중도·낙폭 가드 |
+| 데이터 기반 | Quote/DailyBar/Index/Volatility/Macro 공통 모델, PriceFeatureCalculator, MarketInputFactory, provider/gateway 경계 |
+| KIS 읽기전용 데이터 | KR/US 현재가, KR 일봉 OHLC/거래량, US 일봉 종가, KOSPI `0001`, KOSDAQ `1001`, S&P500 `SPX` 공식 매핑 |
+| FRED / Macro | DFF, DGS2, DGS10, CPIAUCSL, DEXKOUS, WALCL, BAMLH0A0HYM2. Macro feature와 base 85% + macro 15% overlay |
+| 검증 경로 | 단위테스트, GitHub Actions CI, 수동 `Live Credential Smoke` workflow |
+| 기존 backtest 기반 | Historical snapshot schema, `availableAt <= asOf` 검증, universe membership 시점, in-memory append-only store, SHA-256 integrity hash와 테스트 |
 
-## 2026-09-26 Backtest Historical Snapshot v1
-작업 브랜치: `feature/backtest-snapshot-v1`
+기존 구현 이력: PR #1 Core Engine, #2 Data Foundation, #3 Provider Adapters, #4 FRED Live Gateway, #7 Macro Integration, #8 KOSPI/KOSDAQ 매핑, #9 읽기전용 live smoke, #10 S&P500 매핑. 코드/테스트 구현 이력은 실계정 연결 성공을 의미하지 않는다.
 
-### 구현
-- `core/backtest/HistoricalSnapshot.kt`
-- `HistoricalSnapshot`
-- `HistoricalMarketInputs`
-- `HistoricalStockSnapshot`
-- `PointInTimeMeta`
-- `UniverseMembership`
-- `HistoricalSnapshotValidator`
+## 검증 상태와 알려진 빈칸
 
-### Point-in-time 핵심 규칙
-각 전략 입력값은 값뿐 아니라 다음을 보존한다:
-- effective date
-- `availableAt`: 전략이 실제로 그 값을 알 수 있었던 최초 시점
-- source
-- revision/version ID (가능한 경우)
+- **실제 KIS/FRED credential smoke 성공은 미확인.** 키는 GitHub Secrets/환경변수로만 주입하며 코드·fixture·문서에 저장하지 않는다. 실행 방법은 [docs/live-smoke.md](docs/live-smoke.md)를 따른다.
+- 재무·밸류에이션 provider와 실제 종목 점수 입력 연결이 아직 필요하다.
+- US 일봉 OHLC/거래량은 검증된 필드만 사용하는 현재 동작을 유지한다.
+- Nasdaq Composite는 공식 코드 확인 전 fail-closed, VIX/VKOSPI는 미지원이다. 이 기능들과 breadth 고도화는 v2+이다.
+- 신뢰 가능한 컨센서스/EPS Revision이 없으면 missing으로 유지한다. 확보하지 않은 값을 채워 Coverage를 높이지 않는다.
+- 기존 snapshot 코드는 보존하지만 durable persistence, backtest runner, walk-forward와 투자자별 가상포트폴리오는 v2+로 미룬다.
 
-백테스트 입력 하드 규칙:
+## 다음 작은 PR
 
-`availableAt <= snapshot.asOf`
+1. 재무·밸류에이션 공급자: KR/US 지원 범위·필드 의미·접근 조건, 공통 모델과 정규화 구현, fixture 테스트와 CI.
+2. 재무·가격·거시 → 실제 종목 점수 연결 및 샘플 평가. 실제 credential 검증은 결과를 별도로 기록한다.
+3. 추천 TOP 10 → 세 화면 UI → 간단한 v1 검증을 각각 분리해서 진행한다.
 
-위반 시 snapshot을 invalid 처리한다.
+현재 작업은 [TASKS.md](TASKS.md), v2+ 항목은 [ROADMAP.md](ROADMAP.md)에 기록한다. 문서의 기존 “Core Engine v2” 등은 모듈 이력이며, 현재 추천 앱의 v1/v2 출시 범위와 구분한다.
 
-### Bias 방지
-- 미래 발표 재무/컨센서스 사용 금지
-- 오늘의 지수 구성종목을 과거에 소급하는 survivorship bias 차단
-- universe membership 자체에도 `availableAt` 보존
-- revised macro/fundamental 데이터는 revision/vintage 보존 방향
-- 종가로 신호를 만들었다면 동일 종가에 이미 체결된 것으로 가정하지 않음
+## 운영·재개 원칙
 
-### 테스트
-- point-in-time 정상 snapshot
-- 미래 발표 fundamental → invalid
-- 미래 universe membership → invalid
-- duplicate symbol → invalid
+한 PR에 하나의 목적을 담고 테스트/CI 결과를 확인한다. 중요한 결정과 상태 변경은 `DECISIONS.md`, `PROJECT_STATUS.md`, `TASKS.md`에 반영한다.
 
-### 문서
-- `docs/backtest.md`에 look-ahead, survivorship, revision bias, 실행시점, 비용/슬리피지, walk-forward 원칙 기록
-
-## 다음 작업
-1. Repository Secrets 설정 후 KIS/FRED live smoke 성공 확인
-2. Nasdaq Composite 공식 KIS master 코드 확정
-3. Snapshot persistence: append-only + integrity hash + deterministic replay
-4. Backtest benchmark / execution / transaction-cost model
-5. VIX/VKOSPI + market breadth
-6. 재무/밸류에이션/EPS Revision 데이터 공급자 연결
-
-## 운영 원칙
-- Chat: 요구사항·설계·작업분해·검수
-- Work: 저장소 탐색·다단계 실행·테스트/빌드
-- Codex: 실제 코드 수정·오류 해결
-- GitHub: Issue/PR/버전/진행상태
-- GitHub Actions: 자동 테스트/빌드
-
-중요 변경 시 `DECISIONS.md`, `PROJECT_STATUS.md`, `TASKS.md`를 함께 업데이트한다.
-
-## 재개 순서
-`README.md` → `PROJECT_STATUS.md` → `DECISIONS.md` → `ARCHITECTURE.md` → `ROADMAP.md` → `TASKS.md` → 최근 PR/CI.
+재개 시 `README.md` → `PROJECT_STATUS.md` → `DECISIONS.md` → `ARCHITECTURE.md` → `ROADMAP.md` → `TASKS.md` → 최근 PR/CI 순서로 읽는다.

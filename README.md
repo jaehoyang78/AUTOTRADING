@@ -1,95 +1,28 @@
 # AUTOTRADING — Hybrid Investor Engine
 
-개인 겸업 주식투자자를 위한 하이브리드 투자 의사결정 및 자동화 시스템입니다.
-
-이 프로젝트의 목표는 특정 투자자 한 명의 방식을 그대로 복제하는 것이 아니라, 유명 투자자들의 강점을 모듈화하고 시장 국면에 따라 전략 가중치를 바꾸는 것입니다.
-
-핵심 흐름:
+개인 겸업 투자자를 위한 한국·미국 주식 의사결정 앱입니다. 현재 목표는 **실제 데이터로 종목을 평가하고 추천을 보여주는 v1**입니다.
 
 ```text
-Market Data
-→ Market Regime
-→ Stock Screening
-→ Multi-factor Scoring
-→ Investor-style Fit
-→ Risk / Thesis Check
-→ Position Sizing
-→ Recommendation
-→ User Approval
-→ Broker Order
-→ Performance Review
-→ Strategy Improvement
+시세·거시·재무 데이터 → 시장상태 → 종목 100점 평가 → 위험·Coverage 확인 → 추천 TOP 10
 ```
 
-최종 목표는 단순 종목추천 앱이 아니라, 데이터 수집부터 시장판단·종목선별·위험관리·포트폴리오·알림·주문·성과복기·전략개선까지 이어지는 개인 투자 운영체계입니다.
+v1 화면은 세 가지입니다: **오늘 시장상태, 추천 TOP 10, 종목 상세점수**. 종목별 등급, 판단, 추천비중, 투자 스타일 적합도, 추천 이유·위험과 데이터 기준시점/부족 항목을 보여줍니다. 주문/broker 코드, paper trading, 스케줄러·알림은 v2+ 범위입니다.
 
-## 투자 철학 모듈
+## 현재 진행상황
 
-- Benjamin Graham — Value / Margin of Safety
-- Warren Buffett & Charlie Munger — Quality / Durable Economics
-- Peter Lynch — GARP / Growth at a Reasonable Price
-- Howard Marks — Cycle / Market Temperature / Risk
-- Ray Dalio — Macro Regime
-- George Soros — Trend / Reflexivity
-- Stanley Druckenmiller — Regime Adaptation / Conviction
-- Edward Thorp — Probability / Position Sizing
+전략 엔진, 읽기전용 KIS KR/US 시세와 KOSPI/KOSDAQ/S&P500 매핑, FRED 거시 연결 코드, 단위테스트와 CI 기반이 있습니다. **실제 KIS/FRED credential 성공은 아직 확인되지 않았고, 추천 앱 v1은 개발 중입니다.**
 
-## 핵심 투자 원칙
+다음 최우선 작업은 **재무·밸류에이션 공급자 설계와 구현**입니다. 매출/EPS 성장률, ROE/ROIC, PER/PBR, 부채비율, FCF를 우선 연결합니다. 이후 한국·미국 각각 20~50개 종목으로 점수를 계산하고 TOP 10과 최소 UI를 완성합니다.
 
-1. 싼 이유만으로 저품질 기업을 사지 않는다.
-2. 좋은 기업도 가격이 지나치게 비싸면 기다린다.
-3. 성장성 없는 저평가주는 가치함정 가능성을 우선 확인한다.
-4. 실적과 가격 추세가 함께 악화되면 위험을 줄인다.
-5. 과열장에서는 공격성을 낮춘다.
-6. 공포·패닉장에서는 우량주를 더 적극적으로 찾되 저품질주는 제외한다.
-7. 가격이 하락했다는 이유만으로 물타기하지 않는다.
-8. 추가매수는 투자논리·퀄리티·실적전망 유지가 확인될 때만 한다.
-9. 수익 가능성보다 생존과 손실 가능성을 먼저 계산한다.
-10. 현금도 하나의 포지션으로 본다.
-11. 단일 종목·단일 섹터 과집중을 피한다.
-12. 예측보다 대응을 우선한다.
-13. 전략 전환은 감정이 아니라 사전 정의된 데이터 조건으로 한다.
-14. 주문 자동화보다 분석·추천 자동화를 먼저 완성한다.
-15. 전략 변경은 백테스트와 워크포워드 검증 후에만 적용한다.
+- [TASKS.md](TASKS.md): 지금 할 v1 작업과 v2+ 보류 항목
+- [ROADMAP.md](ROADMAP.md): 출시 범위와 완료 조건
+- [PROJECT_STATUS.md](PROJECT_STATUS.md): 구현 및 실제 연결 검증 상태
 
-## Market Regime Engine
+## 전략의 핵심
 
-Market Score: 0~100
+시장 국면과 종목의 매력을 분리해서 평가합니다. Graham의 가치, Buffett/Munger의 퀄리티, Lynch의 성장, Marks/Dalio의 사이클·거시, Soros/Druckenmiller의 추세·국면 대응, Thorp의 비중 원칙을 모듈로 조합합니다.
 
-| Score | Regime | 의미 |
-|---:|---|---|
-| 80–100 | RISK_ON_STRONG | 강한 상승 환경 |
-| 65–79 | RISK_ON_NORMAL | 정상 상승 환경 |
-| 40–64 | NEUTRAL | 횡보/혼조 |
-| 20–39 | RISK_OFF | 방어적 환경 |
-| 0–19 | PANIC | 극단적 스트레스 |
-
-초기 입력 가중치:
-
-| 입력 | 가중치 |
-|---|---:|
-| 20일 추세 | 10 |
-| 60일 추세 | 15 |
-| 200일 추세 | 20 |
-| 52주 고점 대비 낙폭 | 15 |
-| Market Breadth | 15 |
-| VIX / VKOSPI | 10 |
-| EPS Revision Breadth | 10 |
-| Credit Spread Stress | 5 |
-
-기본 위험배수:
-
-- RISK_ON_STRONG: 1.00
-- RISK_ON_NORMAL: 0.90
-- NEUTRAL: 0.70
-- RISK_OFF: 0.55
-- PANIC: 0.65
-
-PANIC은 무조건 매수 신호가 아닙니다. 퀄리티와 투자논리가 유지되는 우량주만 분할매수 후보가 됩니다.
-
-## Stock Score — 100점
-
-| Component | Weight |
+| 종목 점수 구성 | 가중치 |
 |---|---:|
 | Quality | 25 |
 | Growth | 20 |
@@ -97,184 +30,29 @@ PANIC은 무조건 매수 신호가 아닙니다. 퀄리티와 투자논리가 �
 | Momentum | 15 |
 | Earnings Revision | 10 |
 | Macro / Sector Fit | 10 |
-| Total | 100 |
 
-### Quality
-ROIC, ROE, 영업이익률, FCF 지속성, Debt/Equity, 이익 안정성
+시장점수는 0~100이며 강한 상승/정상 상승/중립/방어/패닉의 5단계로 분류합니다. 점수별 기본비중에 시장 위험배수를 반영하고 기존 집중도·현금·낙폭 가드를 적용합니다. PANIC 자체는 매수 신호가 아니며 투자논리와 퀄리티를 함께 확인합니다.
 
-### Growth
-매출 성장률, EPS 성장률, 영업이익 성장률, Forward EPS 성장률
+데이터가 없으면 0점으로 평가하거나 임의 proxy로 채우지 않습니다. 확보한 항목끼리 재정규화하고 Coverage를 별도 표시하며, 핵심 데이터가 부족하면 신규매수 추천비중을 0으로 제한합니다. EPS Revision 데이터가 없으면 missing으로 남깁니다. v1의 단위테스트·샘플 검증은 투자성과 검증을 뜻하지 않습니다.
 
-### Value
-PER vs 업종/자기과거, PBR, EV/EBITDA, FCF Yield, PEG
+상세 전략은 [docs/hybrid-strategy-v1.md](docs/hybrid-strategy-v1.md), 계산·데이터 결정은 [DECISIONS.md](DECISIONS.md)를 참고합니다. 기존 전략 문서와 [ARCHITECTURE.md](ARCHITECTURE.md)의 자동화·주문·가상포트폴리오는 장기 설계이며 현재 출시 범위는 [ROADMAP.md](ROADMAP.md)가 정합니다.
 
-### Momentum
-20/60/120일 수익률, 상대강도, 거래량 증가, 52주 고점과 거리
+## v2+ 기록
 
-### Earnings Revision
-3개월 EPS 추정치 변화, 상향/하향 추정치 비율
+VIX/VKOSPI, breadth 고도화, Nasdaq Composite, 심화 백테스트 저장소/walk-forward, 투자자별 가상포트폴리오, 자동 스캔·알림, paper trading과 사용자 승인형 KIS 실주문은 v1 이후 순차 진행합니다. 기존 historical snapshot/store 구현은 보존합니다. 향후 주문은 읽기전용 데이터 공급자와 분리된 broker 모듈에서 다룹니다.
 
-### Macro / Sector Fit
-현재 성장·물가·금리·유동성 환경과 업종 민감도의 적합도
+## 개발과 검증
 
-## Grade / Position Sizing
+Kotlin/JVM 프로젝트이며 JDK 17과 Gradle을 사용합니다.
 
-| Score | Grade | Base Weight |
-|---:|---|---:|
-| 90+ | S | 7% |
-| 85–89 | A+ | 5% |
-| 80–84 | A | 3% |
-| 75–79 | B+ | 2% |
-| 70–74 | B | 1% |
-| <70 | C/D | 0% |
-
-최종 추천비중:
-
-```text
-recommended_position = base_position × market_risk_multiplier
+```sh
+gradle test
 ```
 
-향후에는 섹터집중, 포트폴리오 상관관계, 기존 비중, 현금목표, 전체 Drawdown도 반영합니다.
+단위테스트는 실제 네트워크와 비밀키 없이 실행합니다. 실제 연결 확인은 수동 읽기전용 [Live Credential Smoke](docs/live-smoke.md)로 별도 수행합니다. credential은 GitHub Secrets/환경변수로 주입하고 코드·fixture·로그에 저장하지 않습니다.
 
-## Staged Buying
+저장소 주요 경로: `core/` 전략 계산, `data/` 공급자·정규화, `tests/` 테스트, `tools/` 검증 도구, `.github/workflows/` CI. UI 경로는 아직 없습니다. 공급자 설계는 [docs/data-sources.md](docs/data-sources.md), 개발 규칙은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고합니다.
 
-기본 3회 분할:
-
-- 1차 40%
-- 2차 30%
-- 3차 30%
-
-추가매수 허용 조건:
-- Thesis 유지
-- Quality 유지
-- EPS Revision 급격한 악화 없음
-- 재무구조 훼손 없음
-
-금지 규칙: "주가가 떨어졌으니 더 산다."
-
-## Sell Framework
-
-1. Thesis Sell — 투자논리 훼손
-2. Valuation Sell — 과도한 고평가
-3. Trend Sell — 실적과 모멘텀 동시 악화
-4. Portfolio Sell — 더 높은 기대값 후보로 교체
-
-## Investor Fit
-
-종목별로 다음 적합도를 별도 표시할 예정입니다.
-
-- Buffett Fit
-- Graham Fit
-- Lynch Fit
-- Momentum / Soros Fit
-- Druckenmiller Fit
-
-Fit Score는 단순 매수/매도 판단이 아니라 “왜 이 종목이 현재 매력적인가”를 설명하기 위한 도구입니다.
-
-## Virtual Strategy Portfolios
-
-병렬 가상포트폴리오:
-
-- Buffett
-- Graham
-- Lynch
-- Momentum
-- Hybrid
-
-비교지표:
-- CAGR
-- 누적수익률
-- MDD
-- 변동성
-- Sharpe / Sortino
-- 승률
-- 평균 손익비
-- Turnover
-- 거래비용
-- Slippage
-
-## Automation Roadmap
-
-초기:
-- 데이터 수집 자동화
-- 시장 분석 자동화
-- 종목 점수 자동화
-- 후보 추천
-- 알림
-- 사용자 승인형 주문
-
-다음 단계:
-- 장 시작 30분 후 스캔
-- 장 마감 30분 전 스캔
-- 추천 변경 알림
-- Thesis 위험 알림
-- EPS Revision 알림
-- 리밸런싱 제안
-
-장기:
-- 상시 서버
-- Push 알림
-- 한국투자증권 Open API
-- 사용자 승인형 실주문
-- 충분한 검증 이후에만 제한적 조건부 자동주문
-
-## Safety / Execution Principles
-
-- 추천 엔진과 주문 엔진을 분리한다.
-- 실주문 전 fresh quote를 다시 확인한다.
-- 종목, 방향, 수량, 가격, 거래소, 주문금액, 위험요약을 최종 화면에 표시한다.
-- 주문 timeout 시 자동 재시도하지 않는다.
-- 중복주문 방지 장치를 둔다.
-- Paper/Simulation과 Live를 명확히 분리한다.
-- 모든 추천·결정·주문은 Audit Log에 남긴다.
-
-## Repository Structure
-
-```text
-AUTOTRADING/
-├─ README.md
-├─ PROJECT_STATUS.md
-├─ DECISIONS.md
-├─ ARCHITECTURE.md
-├─ ROADMAP.md
-├─ TASKS.md
-├─ docs/
-│  └─ hybrid-strategy-v1.md
-├─ core/
-│  └─ HybridStrategyEngine.kt
-├─ data/
-├─ apps/
-│  └─ mobile/
-├─ server/
-├─ tests/
-└─ .github/workflows/
-```
-
-## Project Operating Model
-
-- Chat: 요구사항·설계·작업분해·검수
-- Work: 저장소 탐색·다단계 실행·테스트·빌드
-- Codex: 실제 코드 수정·오류 해결
-- GitHub: Issue / PR / 버전 / 진행상태
-- GitHub Actions: 자동 테스트·빌드
-
-중요한 설계 변경 시 반드시 함께 갱신:
-- `DECISIONS.md`
-- `PROJECT_STATUS.md`
-- `TASKS.md`
-
-## Resume Instructions
-
-새 Chat / Work / Codex 세션에서는 다음 순서로 읽고 이어갑니다.
-
-1. `README.md`
-2. `PROJECT_STATUS.md`
-3. `DECISIONS.md`
-4. `ARCHITECTURE.md`
-5. `ROADMAP.md`
-6. `TASKS.md`
-7. 최근 PR / 커밋
-
-그 후 `TASKS.md`의 가장 높은 우선순위 미완료 항목부터 진행합니다.
+작은 PR을 순차적으로 진행하고, 한 PR에 하나의 검토 가능한 목적만 담습니다. 재개 시 README → PROJECT_STATUS → DECISIONS → ARCHITECTURE → ROADMAP → TASKS → 최근 PR/CI를 읽고 v1의 가장 높은 미완료 항목부터 진행합니다.
 
 **Canonical repository: `jaehoyang78/AUTOTRADING`**
