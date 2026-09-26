@@ -21,9 +21,9 @@
 - [x] Investor fit score
 - [x] Thesis state model
 - [x] Buy/Add/Hold/Reduce/Sell decision rules
-- [ ] Portfolio concentration rules
+- [x] Portfolio equity exposure rule v1
 - [x] Sector concentration rule v1 (25% 이상 증액 제한)
-- [ ] Cash target rules
+- [x] Cash target rules v1
 - [x] Portfolio drawdown risk gate v1 (-15% 이하 증액 제한)
 
 ## P2 — 테스트
@@ -39,6 +39,7 @@
 - [x] Panic regime tests
 - [x] Broken-thesis SELL test
 - [x] Sector-concentration risk test
+- [x] Portfolio cash/exposure tests
 
 ## P3 — 데이터 연결
 ### 한국
@@ -115,10 +116,10 @@
 - [ ] timeout no-retry rule
 
 ## 다음 최우선 작업
-1. P1 Portfolio concentration rules
-2. P1 Cash target rules
-3. P2 factor boundary/extreme-value tests
-4. P3 데이터 공급자 비교 및 시세/일봉부터 연결
+1. P2 factor boundary/extreme-value tests
+2. P3 데이터 공급자 비교 문서
+3. P3 KR/US 시세·일봉 provider interface
+4. 실제 시장 데이터로 Market Regime 연결
 
 ## 재개용 한 줄 지시
 > `jaehoyang78/AUTOTRADING`의 README.md, PROJECT_STATUS.md, DECISIONS.md, ARCHITECTURE.md, ROADMAP.md, TASKS.md를 먼저 읽고 TASKS.md의 가장 높은 우선순위 미완료 항목부터 이어서 진행해. 중요한 결정 변경 시 DECISIONS.md와 PROJECT_STATUS.md도 함께 갱신해.
