@@ -7,6 +7,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.json:json:20260814")
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
 }
