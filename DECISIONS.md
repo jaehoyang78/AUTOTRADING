@@ -165,3 +165,17 @@ KIS 해외 시세는 거래소 코드가 필요하므로 `Venue`를 KRX/NASDAQ/N
 
 이유:
 매크로는 중요하지만 단일 거시모형이 가격·수급보다 시장판단을 과도하게 지배하지 않도록 하고, 향후 백테스트에서 macro 산식과 가중치를 독립적으로 교체/검증하기 위함이다.
+
+## D-030 — 지수 매핑은 공식 예제로 검증된 것만 활성화한다
+결정:
+- KOSPI: KIS 업종코드 `0001`
+- KOSDAQ: KIS 업종코드 `1001`
+- Path: `/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice`
+- TR ID: `FHKUP03500100`
+- 시장구분: `FID_COND_MRKT_DIV_CODE=U`
+
+공식 KIS `open-trading-api` 예제에서 확인된 매핑만 운영 코드에 적용한다.
+
+S&P500/Nasdaq Composite는 같은 수준의 공식 매핑을 아직 확인하지 못했으므로 `UnsupportedOperationException`으로 fail-closed 상태를 유지한다. 지수명을 임의 ETF나 종목 심볼로 대체하지 않는다.
+
+이유: Market Regime의 20/60/200일 추세가 잘못된 지수 데이터에 의해 왜곡되는 위험을 막기 위함이다.
