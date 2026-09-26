@@ -13,6 +13,14 @@ object MarketInputFactory {
         val creditSpreadStress: Double? = null
     )
 
+    fun withMacro(
+        supplementary: SupplementaryMarketData,
+        macro: MacroFeatureCalculator.MacroFeatures?
+    ): SupplementaryMarketData = supplementary.copy(
+        creditSpreadStress = supplementary.creditSpreadStress
+            ?: macro?.creditSpreadStress
+    )
+
     fun fromIndexFeatures(
         index: PriceFeatureCalculator.IndexTrendFeatures,
         supplementary: SupplementaryMarketData = SupplementaryMarketData()
