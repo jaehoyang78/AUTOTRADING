@@ -46,6 +46,7 @@
 - [x] FRED HTTP parser/error tests
 - [x] KIS OAuth/quote/daily/venue/error tests
 - [x] Macro feature / regime overlay tests
+- [x] KOSPI/KOSDAQ index mapping tests
 
 ## P3 — 데이터 연결
 ### 기반
@@ -67,7 +68,7 @@
 
 ### 한국
 - [x] KIS live HTTP/OAuth market-data gateway
-- [ ] KOSPI/KOSDAQ 지수 mapping
+- [x] KOSPI/KOSDAQ 지수 mapping (KOSPI=0001, KOSDAQ=1001, FHKUP03500100)
 - [x] 국내 종목 현재가 연결 코드
 - [x] 국내 종목 일봉 연결 코드
 - [x] 국내 일봉 거래량 파싱
@@ -81,7 +82,7 @@
 ### 미국
 - [x] KIS US live HTTP market-data gateway
 - [x] 미국 거래소/venue 식별 규칙
-- [ ] S&P500/Nasdaq 지수 mapping
+- [ ] S&P500/Nasdaq 지수 mapping — 공식 KIS mapping 검증 전 fail-closed
 - [x] 미국 종목 현재가 연결 코드
 - [x] 미국 종목 일봉 종가 연결 코드
 - [ ] 미국 일봉 거래량/OHLC 추가 검증
@@ -149,8 +150,8 @@
 - [ ] timeout no-retry rule
 
 ## 다음 최우선 작업
-1. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping
-2. KIS/FRED 실제 credential smoke-test 실행 경로
+1. KIS/FRED 실제 credential smoke-test 실행 경로
+2. S&P500/Nasdaq 공식 지수 mapping 추가 조사
 3. VIX/VKOSPI + market breadth
 4. 미국 일봉 거래량/OHLC 추가 검증
 5. Historical snapshot schema 및 백테스트 데이터 저장 방식 설계
