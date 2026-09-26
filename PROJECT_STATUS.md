@@ -7,6 +7,7 @@
 - PR #1 Core Engine v2
 - PR #2 Data Foundation v1
 - PR #3 Provider Adapters v1
+- PR #4 FRED Live Data Gateway v1
 
 핵심 완료 기능:
 - Market Regime / 100점 Stock Score / Data Coverage
@@ -15,44 +16,62 @@
 - 공통 Quote/DailyBar/Index/Volatility/Macro 모델
 - PriceFeatureCalculator / MarketInputFactory
 - KIS/FRED gateway 경계와 정규화 provider adapter
+- FRED live HTTP gateway
 - GitHub Actions CI 및 단위테스트
 
-## 2026-09-26 Live Data Gateways v1
-작업 브랜치: `feature/live-data-gateways-v1`
+## 2026-09-26 KIS Live Market v1
+작업 브랜치: `feature/kis-live-market-v1`
 
 ### 완료
-- injectable `HttpTransport` / JDK HTTP 구현
-- FRED `series/observations` 실제 REST 호출용 `FredHttpGateway` 구현
-- `FRED_API_KEY` 환경변수 주입 경로 제공
-- JSON missing value(`.`)를 신호로 변조하지 않고 건너뜀
-- HTTP 2xx가 아니면 fail-closed
-- 네트워크 없이 fixture로 HTTP/JSON parsing 테스트
-- 최신 Maven Central `org.json:json:20260814` 사용
-- FRED macro series catalog v1:
-  - DFF: Effective Federal Funds Rate
-  - DGS2 / DGS10: 2Y / 10Y Treasury
-  - CPIAUCSL: CPI
-  - WALCL: Fed total assets liquidity proxy
-  - DEXKOUS: USD/KRW
-  - BAMLH0A0HYM2: US High Yield OAS
+- `Venue` 모델 추가: KRX / NASDAQ / NYSE / AMEX
+- `MarketDataProvider`를 venue-aware 인터페이스로 변경
+- KR은 KRX를 기본 venue로 강제
+- US는 NASDAQ/NYSE/AMEX 명시 없이는 조회 금지
+- `KisInstrument` / `KisVenue` 도입
+- `HttpTransport` POST 지원 추가
+- 비밀값을 출력하지 않는 `KisCredentials` 추가
+- 환경변수 이름 확정: `KIS_APP_KEY`, `KIS_APP_SECRET`
+- `KisHttpGateway` OAuth token 발급/캐시 구현
+- token 만료 60초 전 갱신
+- 국내 현재가: `inquire-price` / `FHKST01010100`
+- 미국 현재가: overseas price / `HHDFS00000300`
+- 미국 venue → KIS EXCD: NASDAQ=NAS, NYSE=NYS, AMEX=AMS
+- 국내 일봉: `inquire-daily-itemchartprice` / `FHKST03010100`
+- 미국 일봉 종가: `dailyprice` / `HHDFS76240000`
+- 국내 일봉 OHLC/거래량은 확인된 필드만 파싱
+- 미국 일봉은 검증된 `xymd`/`clos`만 사용하고 미검증 OHLC/거래량은 null 유지
+- KIS `rt_cd != 0`, HTTP 비정상 응답은 fail-closed
+- OAuth token 재사용 / venue 매핑 / 일봉 정렬 / 오류 / secret redaction 단위테스트
+- 기존 provider/price feature 테스트를 venue 모델에 맞게 갱신
+- 브랜치 CI 성공 확인
 
-### 중요한 데이터 주의
-- FRED macro는 발표주기와 revision을 고려해야 하며 단순 실시간 데이터처럼 취급하지 않는다.
-- historical backtest에는 당시 이용 가능했던 값(vintage/point-in-time)을 고려해야 한다.
-- BAMLH0A0HYM2는 2026년 4월부터 FRED에서 제공되는 과거 관측치가 3년으로 제한된다는 공식 안내가 있으므로 장기 백테스트 소스로 그대로 사용하지 않는다.
+### 의도적으로 미구현
+- KIS index API mapping: 정확한 엔드포인트/TR ID 검증 전 미구현
+- KIS volatility API mapping: 정확한 VKOSPI/VIX 경로 검증 전 미구현
+- Broker 주문: 이 gateway에 절대 포함하지 않음
+- 미국 일봉 OHLC/volume: 필드 검증 전 임의 파싱 금지
+
+### 보안
+- AppKey/AppSecret은 코드/커밋/Issue/fixture에 저장하지 않는다.
+- `KisCredentials.toString()`은 항상 마스킹한다.
+- HTTP 오류/업무 오류 메시지에 credential을 포함하지 않는다.
+- 실계좌 주문 모듈과 시세 gateway는 독립 유지한다.
 
 ## 다음 작업
-1. KIS live HTTP/OAuth market-data gateway
-2. 미국 종목 venue(NASDAQ/NYSE/AMEX) 모델
-3. macro feature calculator (금리곡선, CPI YoY, 유동성/credit 변화)
-4. 실제 FRED/KIS smoke test → Market Regime 생성
-5. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping
+1. macro feature calculator → Market Regime 보조입력 생성
+2. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping 검증
+3. 실제 KIS/FRED credential smoke-test 실행 경로
+4. VIX/VKOSPI + market breadth
+5. 재무/밸류에이션 데이터 공급자 연결
 
-## 보안/운영 원칙
-- AppKey/AppSecret/FRED key/계좌정보를 GitHub, Issue, 테스트 fixture에 저장하지 않는다.
-- Market-data와 Broker order adapter를 분리한다.
-- CI는 외부 API나 비밀키 없이 통과 가능해야 한다.
-- 중요한 변경 시 `DECISIONS.md`, `PROJECT_STATUS.md`, `TASKS.md`를 함께 업데이트한다.
+## 운영 원칙
+- Chat: 요구사항·설계·작업분해·검수
+- Work: 저장소 탐색·다단계 실행·테스트/빌드
+- Codex: 실제 코드 수정·오류 해결
+- GitHub: Issue/PR/버전/진행상태
+- GitHub Actions: 자동 테스트/빌드
+
+중요 변경 시 `DECISIONS.md`, `PROJECT_STATUS.md`, `TASKS.md`를 함께 업데이트한다.
 
 ## 재개 순서
 `README.md` → `PROJECT_STATUS.md` → `DECISIONS.md` → `ARCHITECTURE.md` → `ROADMAP.md` → `TASKS.md` → 최근 PR/CI.
