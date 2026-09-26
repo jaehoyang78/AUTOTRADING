@@ -18,90 +18,73 @@
 7. 가상 포트폴리오 병렬 운용
 8. 사용자 승인형 실제 주문
 
-## 2026-09-26 Core Engine v2
-작업 브랜치: `feature/core-engine-v2`, PR #1
+## Core Engine v2 — main 반영 완료
+PR #1이 CI 성공 후 `main`에 squash merge 됐다.
+
+완료 기능:
+- Market Regime / 100점 Stock Score
+- Data Coverage gate
+- Investor Fit
+- Thesis/Decision Engine
+- 개별종목·섹터·포트폴리오 위험 가드
+- 시장국면별 Cash Target / Max Equity Exposure
+- GitHub Actions CI 및 핵심 단위테스트
+
+## 2026-09-26 Data Foundation v1
+작업 브랜치: `feature/data-foundation-v1`
 
 ### 완료
-- Kotlin/JVM Gradle 프로젝트 초기화
-- GitHub Actions `Core CI` 생성 및 테스트 성공 확인
-- `CONTRIBUTING.md`에 feature/fix 브랜치 + PR 운영규칙 기록
-- Stock Data Coverage 구현
-- Coverage 부족 시 신규 추천비중 0 처리
-- Investor Fit: Buffett / Graham / Lynch / Soros-Momentum / Druckenmiller
-- ThesisState: STRONG / INTACT / WEAKENING / BROKEN / UNKNOWN
-- DecisionAction: BUY / ADD / HOLD / REDUCE / SELL / AVOID / WATCH
-- Thesis BROKEN → 즉시 SELL / 목표 0%
-- 섹터비중 25% 이상 → 해당 종목 증액 제한
-- 포트폴리오 drawdown -15% 이하 → 신규 위험 확대 제한
-- 개별 종목 추천비중 상한 7%
-- PortfolioRiskEngine 추가
-- 시장국면별 현금 목표 및 최대 주식 익스포저 계산
-- 낙폭에 따른 추가 현금 버퍼
-- 단위테스트 추가
+- Quality/Growth/Value/Momentum/Revision 경계값 테스트
+- extreme-value 테스트: factor/total score 0~100 범위 보장
+- 데이터 공급자 비교/우선순위 `docs/data-sources.md`
+- provider-agnostic 모델:
+  - Quote / DailyBar / IndexBar / VolatilityPoint / MacroPoint
+  - ProviderMeta / DataFreshness
+- MarketDataProvider / MacroDataProvider 인터페이스
+- Gradle main source에 `data/` 포함
+- `PriceFeatureCalculator` 구현:
+  - 20/60/120 trading-session 수익률
+  - 20/60/200일 이동평균 상·하 여부
+  - 252거래일 종가 기준 고점 대비 거리/낙폭
+  - 당일 거래량 / 직전 20거래일 평균 거래량
+  - 일봉 정렬/중복일 검증
+  - 데이터 부족 시 신호를 추정하지 않고 null 반환
+- `MarketInputFactory` 구현:
+  - Index trend feature를 `HybridStrategyEngine.MarketInputs`로 변환
+  - breadth/VIX/revision breadth/credit stress는 신뢰 가능한 데이터가 있을 때만 추가
+  - 비율성 보조입력 0~100 경계 처리
+- 가격특징/입력조립 단위테스트 추가
 
-### Data Coverage v2
-24개 종목 입력 기준:
-- 전체 필드 50% 이상
-- 6개 핵심 factor group 중 4개 이상
-- Quality와 Momentum 필수
+### 데이터 파이프라인 현재 구조
+`외부 API → Provider Adapter → AUTOTRADING Data Models → Price/Market Feature Calculator → MarketInputs/StockInputs → Strategy Engine`
 
-미충족 시 점수는 참고용으로 유지하되 추천비중은 0으로 둔다.
+### 데이터 공급자 우선순위 v1
+1. KIS: 한국/미국 시세·일봉
+2. 지수 데이터 어댑터
+3. FRED: 정책금리/국채금리/인플레이션/일부 유동성·신용 지표
+4. VIX/VKOSPI
+5. 저장된 종목 universe 기반 breadth 자체 계산
+6. 재무/밸류에이션
+7. Consensus/EPS Revision
 
-### Portfolio Risk v1
-기본 현금 목표:
-- RISK_ON_STRONG 10%
-- RISK_ON_NORMAL 15%
-- NEUTRAL 25%
-- RISK_OFF 40%
-- PANIC 35%
+원칙:
+- 외부 vendor 응답 스키마는 adapter 내부에 격리
+- 모든 데이터에 provider/observedAt/freshness 기록
+- 신뢰할 수 없는 EPS Revision proxy 금지
+- Market-data와 Broker order adapter 분리
+- 데이터 부족은 false/zero 신호가 아니라 missing으로 보존
 
-낙폭 버퍼:
-- -10% 이하 +5%
-- -15% 이하 +10%
-- -20% 이하 +15%
-
-현금 목표 상한/하한은 10~60%. 최대 주식비중은 `100 - 현금목표`.
-
-### Decision Engine 우선순위
-1. Thesis BROKEN → SELL
-2. Coverage 부족 → WATCH
-3. 종합점수/추천비중 계산
-4. 섹터 집중도 제한
-5. 포트폴리오 drawdown gate
-6. Thesis WEAKENING 시 목표비중 축소
-7. 현재비중과 목표비중 차이로 BUY/ADD/HOLD/REDUCE 판단
-
-## 기존 투자 프레임
-- Graham → Value / Margin of Safety
-- Buffett/Munger → Quality
-- Lynch → GARP
-- Marks → Cycle / Risk
-- Dalio → Macro Regime
-- Soros → Trend / Reflexivity
-- Druckenmiller → Regime / Conviction
-- Thorp → Position Sizing / Expected Value
-
-Stock Score: Quality 25, Growth 20, Value 20, Momentum 15, Revision 10, Macro Fit 10.
+### 공식 출처 확인
+- KIS Developers: REST 시세/기간별시세 및 WebSocket 기능 제공
+- FRED API: 경제 시계열 observation 조회 제공
+- Cboe: VIX historical closing data 제공
 
 ## 다음 작업
-### P2 Tests
-- factor별 경계값 테스트
-- extreme value 테스트
-- decision matrix 확대
-
-### P3 Data Layer
-- 데이터 공급자 비교 문서
-- KR/US 시세·일봉 provider interface
-- KOSPI/KOSDAQ/S&P500/Nasdaq
-- VIX/VKOSPI
-- 재무/밸류에이션/EPS Revision/Macro
-
-### 이후
-- Backtest / Walk-forward
-- Portfolio / Thesis persistence
-- Mobile UI
-- 알림
-- KIS Broker adapter
+1. KIS market-data adapter skeleton + mock tests
+2. FRED macro adapter skeleton + mock tests
+3. KOSPI/KOSDAQ/S&P500/Nasdaq 실제 index mapping
+4. 실제 데이터 smoke test → Market Regime 생성
+5. 이후 market breadth / 재무 / valuation / consensus 순으로 확장
 
 ## 운영 원칙
 - Chat: 요구사항, 설계, 작업분해, 검수
