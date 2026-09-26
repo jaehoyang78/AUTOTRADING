@@ -15,7 +15,7 @@ dependencies {
 kotlin {
     jvmToolchain(17)
     sourceSets.main {
-        kotlin.srcDirs("core", "data")
+        kotlin.srcDirs("core", "data", "tools")
     }
     sourceSets.test {
         kotlin.srcDir("tests")
@@ -24,4 +24,11 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.register<JavaExec>("liveSmoke") {
+    group = "verification"
+    description = "Run read-only KIS/FRED live connectivity smoke checks using environment credentials"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("autotrading.tools.LiveSmokeKt")
 }
