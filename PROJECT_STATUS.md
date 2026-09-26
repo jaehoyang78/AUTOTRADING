@@ -8,6 +8,7 @@
 - PR #2 Data Foundation v1
 - PR #3 Provider Adapters v1
 - PR #4 FRED Live Data Gateway v1
+- PR #5 KIS Live Market v1
 
 핵심 완료 기능:
 - Market Regime / 100점 Stock Score / Data Coverage
@@ -15,63 +16,61 @@
 - 종목·섹터·포트폴리오 위험 가드와 Cash Target
 - 공통 Quote/DailyBar/Index/Volatility/Macro 모델
 - PriceFeatureCalculator / MarketInputFactory
-- KIS/FRED gateway 경계와 정규화 provider adapter
 - FRED live HTTP gateway
+- KIS OAuth + KR/US 현재가/일봉 market-data gateway
+- KRX/NASDAQ/NYSE/AMEX venue 모델
 - GitHub Actions CI 및 단위테스트
 
-## 2026-09-26 KIS Live Market v1
-작업 브랜치: `feature/kis-live-market-v1`
+## 2026-09-26 Macro Environment v1
+작업 브랜치: `feature/macro-environment-v1`
 
 ### 완료
-- `Venue` 모델 추가: KRX / NASDAQ / NYSE / AMEX
-- `MarketDataProvider`를 venue-aware 인터페이스로 변경
-- KR은 KRX를 기본 venue로 강제
-- US는 NASDAQ/NYSE/AMEX 명시 없이는 조회 금지
-- `KisInstrument` / `KisVenue` 도입
-- `HttpTransport` POST 지원 추가
-- 비밀값을 출력하지 않는 `KisCredentials` 추가
-- 환경변수 이름 확정: `KIS_APP_KEY`, `KIS_APP_SECRET`
-- `KisHttpGateway` OAuth token 발급/캐시 구현
-- token 만료 60초 전 갱신
-- 국내 현재가: `inquire-price` / `FHKST01010100`
-- 미국 현재가: overseas price / `HHDFS00000300`
-- 미국 venue → KIS EXCD: NASDAQ=NAS, NYSE=NYS, AMEX=AMS
-- 국내 일봉: `inquire-daily-itemchartprice` / `FHKST03010100`
-- 미국 일봉 종가: `dailyprice` / `HHDFS76240000`
-- 국내 일봉 OHLC/거래량은 확인된 필드만 파싱
-- 미국 일봉은 검증된 `xymd`/`clos`만 사용하고 미검증 OHLC/거래량은 null 유지
-- KIS `rt_cd != 0`, HTTP 비정상 응답은 fail-closed
-- OAuth token 재사용 / venue 매핑 / 일봉 정렬 / 오류 / secret redaction 단위테스트
-- 기존 provider/price feature 테스트를 venue 모델에 맞게 갱신
+- FRED catalog에 `INDPRO` 산업생산 추가
+- `MacroFeatureCalculator` 구현
+  - 산업생산 YoY
+  - 산업생산 YoY의 최근 3개월 방향
+  - CPI YoY
+  - CPI YoY의 최근 3개월 방향
+  - Effective Fed Funds 최신값 / 약 3개월 변화
+  - 10Y-2Y Treasury curve
+  - Fed balance sheet 약 13주 변화율
+  - USD/KRW 약 3개월 변화율
+  - High Yield OAS 최신값
+  - HY OAS → 0~100 credit-spread stress v1
+- Growth/Inflation 4분면 v1
+  - GROWTH_UP_INFLATION_DOWN
+  - GROWTH_UP_INFLATION_UP
+  - GROWTH_DOWN_INFLATION_DOWN
+  - GROWTH_DOWN_INFLATION_UP
+  - UNKNOWN
+- 데이터가 부족하면 quadrant/trend를 억지로 추정하지 않고 UNKNOWN/null 유지
+- `MacroSectorFitEngine` v1 휴리스틱 구현
+  - Technology / Communications / Discretionary / Staples / Healthcare / Financials / Industrials / Energy / Materials / Utilities / Real Estate
+  - quadrant별 기본 적합도
+  - credit stress가 높으면 민감 업종에 추가 패널티
+- `MarketInputFactory.withMacro()`로 HY OAS stress를 Market Regime의 credit stress 입력에 연결
+- `StockInputEnricher.withMacroSectorFit()`로 Macro Fit 10점 입력 연결
+- macro 계산 / missing data / OAS stress / sector fit / market-stock input integration 테스트 추가
 - 브랜치 CI 성공 확인
 
-### 의도적으로 미구현
-- KIS index API mapping: 정확한 엔드포인트/TR ID 검증 전 미구현
-- KIS volatility API mapping: 정확한 VKOSPI/VIX 경로 검증 전 미구현
-- Broker 주문: 이 gateway에 절대 포함하지 않음
-- 미국 일봉 OHLC/volume: 필드 검증 전 임의 파싱 금지
-
-### 보안
-- AppKey/AppSecret은 코드/커밋/Issue/fixture에 저장하지 않는다.
-- `KisCredentials.toString()`은 항상 마스킹한다.
-- HTTP 오류/업무 오류 메시지에 credential을 포함하지 않는다.
-- 실계좌 주문 모듈과 시세 gateway는 독립 유지한다.
+### 중요한 해석 제한
+- Macro 4분면은 현재 산업생산과 CPI의 YoY 추세를 이용한 v1 proxy이며, 시장의 ‘기대 대비 성장/물가 surprise’를 직접 측정하는 모델은 아니다.
+- Sector Macro Fit 점수는 아직 연구용 휴리스틱이다. 백테스트/워크포워드 검증 전에는 이 점수만으로 자동주문을 허용하지 않는다.
+- Credit stress의 OAS 2.5%→0점, 8%→100점 선형 mapping도 v1 휴리스틱이며 검증 대상이다.
 
 ## 다음 작업
-1. macro feature calculator → Market Regime 보조입력 생성
-2. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping 검증
-3. 실제 KIS/FRED credential smoke-test 실행 경로
-4. VIX/VKOSPI + market breadth
-5. 재무/밸류에이션 데이터 공급자 연결
+1. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping 및 provider
+2. VIX/VKOSPI provider
+3. Market breadth 계산기
+4. 실제 KIS/FRED credential smoke-test 실행 경로
+5. Historical snapshot schema / Backtest foundation
+6. Macro sector-fit heuristic backtest
 
-## 운영 원칙
-- Chat: 요구사항·설계·작업분해·검수
-- Work: 저장소 탐색·다단계 실행·테스트/빌드
-- Codex: 실제 코드 수정·오류 해결
-- GitHub: Issue/PR/버전/진행상태
-- GitHub Actions: 자동 테스트/빌드
-
-중요 변경 시 `DECISIONS.md`, `PROJECT_STATUS.md`, `TASKS.md`를 함께 업데이트한다.
+## 보안/운영 원칙
+- AppKey/AppSecret/FRED key/계좌정보를 GitHub, Issue, fixture에 저장하지 않는다.
+- Market-data와 Broker order adapter를 분리한다.
+- CI는 외부 API나 비밀키 없이 통과 가능해야 한다.
+- 중요한 변경 시 `DECISIONS.md`, `PROJECT_STATUS.md`, `TASKS.md`를 함께 업데이트한다.
 
 ## 재개 순서
 `README.md` → `PROJECT_STATUS.md` → `DECISIONS.md` → `ARCHITECTURE.md` → `ROADMAP.md` → `TASKS.md` → 최근 PR/CI.
