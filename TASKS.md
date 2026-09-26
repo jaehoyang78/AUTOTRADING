@@ -45,6 +45,8 @@
 - [x] Provider adapter normalization tests
 - [x] FRED HTTP parser/error tests
 - [x] KIS OAuth/quote/daily/venue/error tests
+- [x] Macro feature / quadrant / sector-fit tests
+- [x] Macro → MarketInputs / StockInputs integration tests
 
 ## P3 — 데이터 연결
 ### 기반
@@ -95,10 +97,20 @@
 - [x] 정책금리 series config: DFF
 - [x] 국채금리 series config: DGS2 / DGS10
 - [x] 인플레이션 series config: CPIAUCSL
+- [x] 산업생산 series config: INDPRO
 - [x] 달러/환율 series config: DEXKOUS
 - [x] 유동성 proxy series config: WALCL
 - [x] credit spread series config: BAMLH0A0HYM2
-- [ ] macro feature 계산 및 Market Regime 반영
+- [x] 산업생산 YoY 및 3개월 추세
+- [x] CPI YoY 및 3개월 추세
+- [x] 10Y-2Y yield curve
+- [x] Fed Funds 3개월 변화
+- [x] Fed balance sheet 13주 변화
+- [x] USD/KRW 3개월 변화
+- [x] HY OAS → 0~100 credit stress v1
+- [x] Growth/Inflation 4분면 분류 v1
+- [x] Macro credit stress → Market Regime 보조입력
+- [x] Macro quadrant → Sector Macro Fit v1
 - [ ] 실제 FRED credential smoke test
 
 ## P4 — Backtest
@@ -113,6 +125,7 @@
 - [ ] Slippage
 - [ ] Walk-forward
 - [ ] CAGR/MDD/Sharpe/Sortino/Turnover report
+- [ ] Macro sector-fit heuristic 검증
 
 ## P5 — UI
 - [ ] Dashboard
@@ -147,10 +160,11 @@
 - [ ] timeout no-retry rule
 
 ## 다음 최우선 작업
-1. P3 macro feature 계산 및 Market Regime 반영
-2. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping
-3. KIS/FRED 실제 credential smoke-test 실행 경로
-4. VIX/VKOSPI + market breadth
+1. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping 및 provider
+2. VIX/VKOSPI provider
+3. Market breadth 계산기
+4. KIS/FRED 실제 credential smoke-test 실행 경로
+5. Historical snapshot schema / Backtest foundation
 
 ## 재개용 한 줄 지시
 > `jaehoyang78/AUTOTRADING`의 README.md, PROJECT_STATUS.md, DECISIONS.md, ARCHITECTURE.md, ROADMAP.md, TASKS.md를 먼저 읽고 TASKS.md의 가장 높은 우선순위 미완료 항목부터 이어서 진행해. 중요한 결정 변경 시 DECISIONS.md와 PROJECT_STATUS.md도 함께 갱신해.
