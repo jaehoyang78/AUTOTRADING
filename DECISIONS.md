@@ -114,3 +114,16 @@ PANIC의 현금 목표를 Risk-Off보다 약간 낮게 둔 이유는 고품질 �
 - Breadth: 충분한 universe 일봉을 축적한 뒤 내부 계산 우선 검토
 
 주문용 KIS broker adapter는 KIS market-data adapter와 별도 모듈로 유지한다.
+
+## D-024 — Live HTTP/OAuth Gateway와 정규화 Provider Adapter를 한 번 더 분리한다
+구조:
+`HTTP/OAuth/JSON → KisGateway/FredGateway → KisMarketDataProvider/FredMacroDataProvider → AUTOTRADING models`
+
+이유:
+- CI에서 외부 네트워크와 비밀키 없이 정규화 로직을 테스트한다.
+- OAuth/token 갱신·rate limit·JSON 필드 변경과 투자 로직을 격리한다.
+- 실제 API 장애가 테스트 불안정으로 이어지는 것을 막는다.
+- mock gateway로 날짜정렬, limit, 변환 규칙을 결정론적으로 검증한다.
+
+비밀정보 원칙:
+AppKey/AppSecret/FRED API key/계좌정보는 코드·커밋·Issue·테스트 fixture에 저장하지 않는다. live gateway는 환경변수 또는 플랫폼 보안 저장소에서만 주입받도록 구현한다.
