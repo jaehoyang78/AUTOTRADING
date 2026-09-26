@@ -63,7 +63,6 @@ object MacroFeatureCalculator {
         val macroScore = if (weighted.isEmpty()) null else weightedAverage(weighted).toInt().coerceIn(0, 100)
         val spreadStress = highYieldOas?.let { scale(it, 2.0, 10.0) }
 
-        val required = if (market == Market.KR) 7 else 6
         val available = listOfNotNull(
             policyChange,
             curve,
@@ -73,7 +72,7 @@ object MacroFeatureCalculator {
             if (market == Market.KR) usdKrwChange else null
         ).size
         val denominator = if (market == Market.KR) 6 else 5
-        val coverage = if (required == 0) 0 else (available * 100 / denominator).coerceIn(0, 100)
+        val coverage = (available * 100 / denominator).coerceIn(0, 100)
 
         return MacroFeatures(
             policyRateChange6mPp = policyChange,
