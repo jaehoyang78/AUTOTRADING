@@ -28,21 +28,28 @@
 
 ## P2 — 테스트
 - [x] Market regime unit tests
-- [ ] Quality score boundary tests
-- [ ] Growth score boundary tests
-- [ ] Value score boundary tests
-- [ ] Momentum score boundary tests
-- [ ] Revision score boundary tests
+- [x] Quality score boundary tests
+- [x] Growth score boundary tests
+- [x] Value score boundary tests
+- [x] Momentum score boundary tests
+- [x] Revision score boundary tests
 - [x] Position sizing/decision smoke tests
 - [x] Missing-data tests
-- [ ] Extreme-value tests
+- [x] Extreme-value tests
 - [x] Panic regime tests
 - [x] Broken-thesis SELL test
 - [x] Sector-concentration risk test
 - [x] Portfolio cash/exposure tests
 
 ## P3 — 데이터 연결
+### 기반
+- [x] 데이터 공급자 비교/우선순위 문서 v1
+- [x] Provider-agnostic Quote/DailyBar/Index/Volatility/Macro 모델
+- [x] MarketDataProvider 인터페이스
+- [x] MacroDataProvider 인터페이스
+
 ### 한국
+- [ ] KIS provider adapter
 - [ ] KOSPI/KOSDAQ 지수
 - [ ] 국내 종목 일봉
 - [ ] 거래량
@@ -53,6 +60,7 @@
 - [ ] 컨센서스/EPS Revision
 
 ### 미국
+- [ ] KIS US provider adapter
 - [ ] S&P500/Nasdaq 지수
 - [ ] 미국 종목 일봉
 - [ ] 거래량
@@ -63,6 +71,7 @@
 - [ ] EPS Revision
 
 ### Macro
+- [ ] FRED provider adapter
 - [ ] 정책금리
 - [ ] 국채금리
 - [ ] 인플레이션
@@ -116,10 +125,10 @@
 - [ ] timeout no-retry rule
 
 ## 다음 최우선 작업
-1. P2 factor boundary/extreme-value tests
-2. P3 데이터 공급자 비교 문서
-3. P3 KR/US 시세·일봉 provider interface
-4. 실제 시장 데이터로 Market Regime 연결
+1. P3 KIS market-data adapter skeleton + mock tests
+2. P3 FRED macro adapter skeleton + mock tests
+3. DailyBar에서 20/60/200일 추세·수익률·52주 낙폭 계산기
+4. 실제 시장 데이터로 Market Regime 입력 생성기
 
 ## 재개용 한 줄 지시
 > `jaehoyang78/AUTOTRADING`의 README.md, PROJECT_STATUS.md, DECISIONS.md, ARCHITECTURE.md, ROADMAP.md, TASKS.md를 먼저 읽고 TASKS.md의 가장 높은 우선순위 미완료 항목부터 이어서 진행해. 중요한 결정 변경 시 DECISIONS.md와 PROJECT_STATUS.md도 함께 갱신해.
