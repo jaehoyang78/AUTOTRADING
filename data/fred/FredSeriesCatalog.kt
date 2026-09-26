@@ -9,6 +9,7 @@ object FredSeriesCatalog {
     const val TREASURY_2Y = "DGS2"
     const val TREASURY_10Y = "DGS10"
     const val CPI_ALL_URBAN_SA = "CPIAUCSL"
+    const val INDUSTRIAL_PRODUCTION = "INDPRO"
     const val FED_TOTAL_ASSETS = "WALCL"
     const val USD_KRW = "DEXKOUS"
     const val US_HIGH_YIELD_OAS = "BAMLH0A0HYM2"
@@ -18,6 +19,7 @@ object FredSeriesCatalog {
         TREASURY_2Y,
         TREASURY_10Y,
         CPI_ALL_URBAN_SA,
+        INDUSTRIAL_PRODUCTION,
         FED_TOTAL_ASSETS,
         USD_KRW,
         US_HIGH_YIELD_OAS
