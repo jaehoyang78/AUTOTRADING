@@ -10,6 +10,7 @@
 - PR #4 FRED Live Data Gateway v1
 - PR #7 Macro Regime Integration v1
 - PR #8 Verified KOSPI/KOSDAQ Index Mapping v1
+- PR #9 Secure read-only live credential smoke workflow
 
 핵심 완료 기능:
 - Market Regime / 100점 Stock Score / Data Coverage
@@ -21,6 +22,7 @@
 - FRED live HTTP gateway
 - MacroFeatureCalculator / MacroRegimeOverlay / MarketRegimeComposer
 - KOSPI/KOSDAQ verified KIS index history
+- secret-backed manual read-only live smoke workflow
 - GitHub Actions CI 및 단위테스트
 
 ## 2026-09-26 KIS Live Market v1
@@ -66,37 +68,46 @@
 - KOSPI/KOSDAQ `indexBars()` 지원
 - 200일 추세 확보를 위한 날짜 커서 반복 조회
 - 중복 날짜 제거 및 oldest-to-newest 정렬
-- S&P500/Nasdaq/VIX/VKOSPI는 공식 매핑 검증 전 fail-closed
 
 ## 2026-09-26 Live Credential Smoke Path v1
-작업 브랜치: `feature/live-smoke-v1`
-
 ### 구현
 - `tools/LiveSmoke.kt`
 - Gradle `liveSmoke` verification task
 - GitHub Actions 수동 workflow: `Live Credential Smoke`
 - 실행 대상: `KIS`, `FRED`, `BOTH`
+- KIS: 삼성전자 현재가 + KOSPI 5일봉 읽기 전용 확인
+- FRED: DFF 최근 observations 확인
 
-### KIS smoke — 읽기 전용
-- `KIS_APP_KEY`, `KIS_APP_SECRET`을 환경변수/GitHub Secrets에서만 읽음
-- 삼성전자 `005930` 현재가 조회
-- KOSPI 최근 5개 지수 일봉 조회
-- 양수 가격, non-empty index, 시간순 정렬 확인
-- 계좌번호/주문 메서드 사용 없음
-
-### FRED smoke — 읽기 전용
-- `FRED_API_KEY`를 환경변수/GitHub Secrets에서만 읽음
-- DFF 최근 3개 observation 조회
-- non-empty 확인
-
-### 중요한 상태 구분
-- smoke **실행 경로 구축은 완료**
-- 실제 credential을 이용한 live smoke **성공 확인은 아직 미완료**
+### 상태
+- smoke 실행 경로 구축 완료
+- 실제 credential을 이용한 live smoke 성공 확인은 아직 미완료
 - 키는 source/fixture/Issue/PR/chat에 남기지 않는다.
+
+## 2026-09-26 U.S. Index Mapping v1
+작업 브랜치: `feature/us-index-mapping-v1`
+
+### 공식 KIS 자료에서 확인
+- 해외 종목/지수/환율 기간별 시세 API path: `/uapi/overseas-price/v1/quotations/inquire-daily-chartprice`
+- TR ID: `FHKST03030100`
+- 해외지수 구분: `FID_COND_MRKT_DIV_CODE=N`
+- 일봉 날짜: `stck_bsop_date`
+- 해외지수 종가: `ovrs_nmix_prpr`
+- 공식 해외지수 예제에서 S&P500 지수 코드 `SPX` 사용 확인
+
+### 구현
+- `MarketIndex.SP500` → `SPX`
+- 해외지수 일봉 조회 및 날짜 커서 반복 조회
+- 중복 날짜 제거, oldest-to-newest 정렬
+- S&P500 URL/TR-ID/구분코드/지수코드/응답 필드 단위테스트
+
+### Fail-closed 유지
+- `MarketIndex.NASDAQ_COMPOSITE`는 공식 `frgn_code.mst`의 정확한 심볼을 아직 확정하지 못해 미지원
+- 일반적인 외부 서비스의 `IXIC`, `CCMP`, `COMP` 등을 KIS 코드라고 추측하지 않는다.
+- VIX/VKOSPI도 공식 매핑 검증 전 미지원
 
 ## 다음 작업
 1. Repository Secrets 설정 후 KIS/FRED live smoke 성공 확인
-2. S&P500/Nasdaq 공식 지수 mapping 추가 조사
+2. Nasdaq Composite 공식 KIS master 코드 확정
 3. VIX/VKOSPI + market breadth
 4. 미국 일봉 거래량/OHLC 추가 검증
 5. Historical snapshot schema / Backtest 시작

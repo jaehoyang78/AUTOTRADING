@@ -47,6 +47,7 @@
 - [x] KIS OAuth/quote/daily/venue/error tests
 - [x] Macro feature / regime overlay tests
 - [x] KOSPI/KOSDAQ index mapping tests
+- [x] S&P500 overseas-index mapping tests
 
 ## P3 — 데이터 연결
 ### 기반
@@ -83,7 +84,8 @@
 ### 미국
 - [x] KIS US live HTTP market-data gateway
 - [x] 미국 거래소/venue 식별 규칙
-- [ ] S&P500/Nasdaq 지수 mapping — 공식 KIS mapping 검증 전 fail-closed
+- [x] S&P500 공식 해외지수 API mapping (`SPX`, `FHKST03030100`)
+- [ ] Nasdaq Composite 지수 코드 — 공식 KIS master에서 확정 전 fail-closed
 - [x] 미국 종목 현재가 연결 코드
 - [x] 미국 종목 일봉 종가 연결 코드
 - [ ] 미국 일봉 거래량/OHLC 추가 검증
@@ -152,7 +154,7 @@
 
 ## 다음 최우선 작업
 1. GitHub Secrets 구성 후 KIS/FRED live smoke 성공 확인
-2. S&P500/Nasdaq 공식 지수 mapping 추가 조사
+2. Nasdaq Composite 공식 KIS master 코드 확정
 3. VIX/VKOSPI + market breadth
 4. 미국 일봉 거래량/OHLC 추가 검증
 5. Historical snapshot schema 및 백테스트 데이터 저장 방식 설계
