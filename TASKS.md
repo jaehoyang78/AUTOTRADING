@@ -45,6 +45,7 @@
 - [x] Provider adapter normalization tests
 - [x] FRED HTTP parser/error tests
 - [x] KIS OAuth/quote/daily/venue/error tests
+- [x] Macro feature / regime overlay tests
 
 ## P3 — 데이터 연결
 ### 기반
@@ -62,6 +63,7 @@
 - [x] injectable JDK HTTP transport
 - [x] POST support for OAuth
 - [x] Venue model: KRX / NASDAQ / NYSE / AMEX
+- [x] Macro feature 계산 및 Market Regime 반영
 
 ### 한국
 - [x] KIS live HTTP/OAuth market-data gateway
@@ -98,7 +100,7 @@
 - [x] 달러/환율 series config: DEXKOUS
 - [x] 유동성 proxy series config: WALCL
 - [x] credit spread series config: BAMLH0A0HYM2
-- [ ] macro feature 계산 및 Market Regime 반영
+- [x] macro feature 계산 및 Market Regime 반영
 - [ ] 실제 FRED credential smoke test
 
 ## P4 — Backtest
@@ -147,10 +149,11 @@
 - [ ] timeout no-retry rule
 
 ## 다음 최우선 작업
-1. P3 macro feature 계산 및 Market Regime 반영
-2. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping
-3. KIS/FRED 실제 credential smoke-test 실행 경로
-4. VIX/VKOSPI + market breadth
+1. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping
+2. KIS/FRED 실제 credential smoke-test 실행 경로
+3. VIX/VKOSPI + market breadth
+4. 미국 일봉 거래량/OHLC 추가 검증
+5. Historical snapshot schema 및 백테스트 데이터 저장 방식 설계
 
 ## 재개용 한 줄 지시
 > `jaehoyang78/AUTOTRADING`의 README.md, PROJECT_STATUS.md, DECISIONS.md, ARCHITECTURE.md, ROADMAP.md, TASKS.md를 먼저 읽고 TASKS.md의 가장 높은 우선순위 미완료 항목부터 이어서 진행해. 중요한 결정 변경 시 DECISIONS.md와 PROJECT_STATUS.md도 함께 갱신해.
