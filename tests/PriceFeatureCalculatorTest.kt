@@ -16,7 +16,8 @@ class PriceFeatureCalculatorTest {
     fun `rising stock has positive returns and near high`() {
         val bars = (0..259).map { n ->
             DailyBar(
-                symbol = "TEST", market = Market.US, date = LocalDate.of(2025, 1, 1).plusDays(n.toLong()),
+                symbol = "TEST", market = Market.US, venue = Venue.NASDAQ,
+                date = LocalDate.of(2025, 1, 1).plusDays(n.toLong()),
                 open = null, high = null, low = null, close = 100.0 + n,
                 volume = if (n == 259) 2_000L else 1_000L, meta = meta
             )
@@ -57,8 +58,8 @@ class PriceFeatureCalculatorTest {
     fun `unordered daily bars are rejected`() {
         val date = LocalDate.of(2026, 1, 1)
         val bars = listOf(
-            DailyBar("T", Market.KR, date.plusDays(1), null, null, null, 101.0, 100L, meta),
-            DailyBar("T", Market.KR, date, null, null, null, 100.0, 100L, meta)
+            DailyBar("T", Market.KR, Venue.KRX, date.plusDays(1), null, null, null, 101.0, 100L, meta),
+            DailyBar("T", Market.KR, Venue.KRX, date, null, null, null, 100.0, 100L, meta)
         )
         assertFailsWith<IllegalArgumentException> { PriceFeatureCalculator.stockFeatures(bars) }
     }
