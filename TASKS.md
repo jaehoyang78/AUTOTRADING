@@ -44,6 +44,7 @@
 - [x] Market input assembly tests
 - [x] Provider adapter normalization tests
 - [x] FRED HTTP parser/error tests
+- [x] KIS OAuth/quote/daily/venue/error tests
 
 ## P3 — 데이터 연결
 ### 기반
@@ -59,12 +60,16 @@
 - [x] KIS gateway/adapter skeleton
 - [x] FRED gateway/adapter skeleton
 - [x] injectable JDK HTTP transport
+- [x] POST support for OAuth
+- [x] Venue model: KRX / NASDAQ / NYSE / AMEX
 
 ### 한국
-- [ ] KIS live HTTP/OAuth gateway
+- [x] KIS live HTTP/OAuth market-data gateway
 - [ ] KOSPI/KOSDAQ 지수 mapping
-- [ ] 국내 종목 일봉 실제 연결
-- [ ] 거래량 실제 연결
+- [x] 국내 종목 현재가 연결 코드
+- [x] 국내 종목 일봉 연결 코드
+- [x] 국내 일봉 거래량 파싱
+- [ ] 실제 KIS credential smoke test
 - [ ] VKOSPI
 - [ ] Market breadth
 - [ ] 재무
@@ -72,11 +77,13 @@
 - [ ] 컨센서스/EPS Revision
 
 ### 미국
-- [ ] KIS US live HTTP gateway
-- [ ] 미국 거래소/venue 식별 규칙
+- [x] KIS US live HTTP market-data gateway
+- [x] 미국 거래소/venue 식별 규칙
 - [ ] S&P500/Nasdaq 지수 mapping
-- [ ] 미국 종목 일봉 실제 연결
-- [ ] 거래량 실제 연결
+- [x] 미국 종목 현재가 연결 코드
+- [x] 미국 종목 일봉 종가 연결 코드
+- [ ] 미국 일봉 거래량/OHLC 추가 검증
+- [ ] 실제 KIS credential smoke test
 - [ ] VIX
 - [ ] Market breadth
 - [ ] 재무
@@ -92,6 +99,7 @@
 - [x] 유동성 proxy series config: WALCL
 - [x] credit spread series config: BAMLH0A0HYM2
 - [ ] macro feature 계산 및 Market Regime 반영
+- [ ] 실제 FRED credential smoke test
 
 ## P4 — Backtest
 - [ ] Historical snapshot schema
@@ -139,10 +147,10 @@
 - [ ] timeout no-retry rule
 
 ## 다음 최우선 작업
-1. P3 KIS live HTTP/OAuth gateway (market data only)
-2. 미국 종목 venue 식별 모델 확정
-3. macro feature 계산 및 Market Regime 반영
-4. 실제 FRED/KIS 데이터 smoke test
+1. P3 macro feature 계산 및 Market Regime 반영
+2. KOSPI/KOSDAQ/S&P500/Nasdaq index mapping
+3. KIS/FRED 실제 credential smoke-test 실행 경로
+4. VIX/VKOSPI + market breadth
 
 ## 재개용 한 줄 지시
 > `jaehoyang78/AUTOTRADING`의 README.md, PROJECT_STATUS.md, DECISIONS.md, ARCHITECTURE.md, ROADMAP.md, TASKS.md를 먼저 읽고 TASKS.md의 가장 높은 우선순위 미완료 항목부터 이어서 진행해. 중요한 결정 변경 시 DECISIONS.md와 PROJECT_STATUS.md도 함께 갱신해.
